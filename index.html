@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GenerateMyNFT</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📂</text></svg>">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#f5f4f0;--surface:#fff;--surface2:#f9f8f5;--surface3:#f2f1ed;
+      --border:#e5e3dc;--border2:#d4d0c8;
+      --accent:#1a1a1a;--red:#e63946;--green:#16a34a;
+      --text:#1a1a1a;--muted:#888880;--muted2:#b0ada5;
+      --sh:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+      --sh-lg:0 4px 24px rgba(0,0,0,.1),0 1px 4px rgba(0,0,0,.06);
+    }
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    .hdr{background:var(--surface);padding:0 28px;height:56px;border-bottom:1px solid var(--border);
+      display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:200}
+    .hdr-logo{font-size:14px;font-weight:700;letter-spacing:-.3px;display:flex;align-items:center;gap:10px}
+    .hdr-logo .dot{width:6px;height:6px;border-radius:50%;background:var(--red);display:inline-block}
+    .badge{background:var(--red);color:#fff;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:.5px}
+    .hdr-btns{display:flex;gap:8px;align-items:center}
+    .btn{padding:8px 18px;border:none;border-radius:8px;font-weight:600;cursor:pointer;
+      transition:all .18s;font-size:12px;font-family:'DM Sans',sans-serif;
+      display:inline-flex;align-items:center;gap:5px}
+    .btn-dark{background:var(--accent);color:#fff}
+    .btn-dark:hover:not(:disabled){background:#333;transform:translateY(-1px);box-shadow:var(--sh-lg)}
+    .btn-dark:disabled{opacity:.35;cursor:not-allowed}
+    .btn-ghost{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+    .btn-ghost:hover{border-color:var(--border2);background:var(--surface2)}
+    .btn-red{background:var(--red);color:#fff}
+    .btn-red:hover:not(:disabled){background:#c0392b}
+    .btn-red:disabled{opacity:.35;cursor:not-allowed}
+    .btn-green{background:var(--green);color:#fff}
+    .btn-green:hover:not(:disabled){background:#15803d}
+    .btn-sm{padding:5px 12px;font-size:11px;border-radius:6px}
+    .wrap{display:flex;min-height:calc(100vh - 56px)}
+    .col{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;max-height:calc(100vh - 56px);width:320px;min-width:200px;flex-shrink:0}
+    .col-mid{background:var(--bg);overflow-y:auto;max-height:calc(100vh - 56px);flex:1;min-width:200px}
+    .col-right{border-right:none;border-left:1px solid var(--border);width:300px;min-width:200px;flex-shrink:0}
+    .resize-handle{width:5px;cursor:col-resize;background:transparent;flex-shrink:0;position:relative;z-index:10;transition:background .15s}
+    .resize-handle:hover,.resize-handle.active{background:var(--border2)}
+    .pad{padding:20px}
+    .stitle{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);
+      margin-bottom:14px;display:flex;align-items:center;gap:8px}
+    .stitle::after{content:'';flex:1;height:1px;background:var(--border)}
+    .upload{border:1.5px dashed var(--border2);border-radius:10px;padding:22px 14px;text-align:center;
+      cursor:pointer;transition:all .2s;margin-bottom:16px;background:var(--surface2)}
+    .upload:hover,.upload.over{border-color:var(--red);background:#fef2f2}
+    .upload-icon{font-size:26px;margin-bottom:6px}
+    .upload-title{font-size:13px;font-weight:600;margin-bottom:3px}
+    .upload-hint{font-size:11px;color:var(--muted);line-height:1.5}
+    .layer-wrap{margin-bottom:8px;border:1px solid var(--border);border-radius:10px;overflow:hidden;
+      transition:border-color .2s,opacity .2s;background:var(--surface);user-select:none}
+    .layer-wrap.layer-hidden{opacity:.45}
+    .layer-wrap.layer-dragging{position:fixed;z-index:1000;pointer-events:none;opacity:.9;
+      box-shadow:0 8px 32px rgba(0,0,0,.18);transform:rotate(1deg);transition:none}
+    .layer-placeholder{border:2px dashed var(--red);border-radius:10px;margin-bottom:8px;background:#fef2f2}
+    .layer-hdr{display:flex;align-items:center;padding:9px 12px;background:var(--surface2);gap:7px;user-select:none}
+    .drag-handle{cursor:grab;color:var(--muted2);font-size:16px;padding:0 2px;flex-shrink:0;line-height:1}
+    .drag-handle:active{cursor:grabbing}
+    .layer-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .layer-name-txt{font-size:12px;font-weight:600;flex:1;letter-spacing:-.2px;cursor:pointer;border-radius:4px;padding:2px 4px}
+    .layer-name-txt:hover{background:var(--surface3)}
+    .layer-name-input{font-size:12px;font-weight:600;border:1px solid var(--accent);border-radius:4px;padding:2px 4px;
+      outline:none;font-family:'DM Sans',sans-serif;width:100px}
+    .layer-count{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace}
+    .hidden-badge{font-size:9px;background:#fff3cd;color:#806000;border:1px solid #f0c040;padding:1px 5px;border-radius:4px;font-weight:700}
+    .layer-act{display:flex;gap:4px;align-items:center}
+    .icon-btn{background:none;border:1px solid var(--border);border-radius:5px;padding:3px 7px;
+      cursor:pointer;font-size:11px;color:var(--muted);transition:all .15s;line-height:1.4;display:flex;align-items:center;justify-content:center;gap:3px;font-family:'DM Sans',sans-serif;font-weight:600;min-width:28px;min-height:28px}
+    .icon-btn:hover{border-color:var(--border2);color:var(--text);background:var(--surface)}
+    .icon-btn.active-hide{background:#fff3cd;border-color:#f0c040;color:#806000}
+    .icon-btn.del:hover{border-color:var(--red);color:var(--red);background:#fef2f2}
+    .trait-list{padding:8px;display:flex;flex-direction:column;gap:5px}
+    .trait-row{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;
+      background:var(--surface2);border:1px solid transparent;transition:all .15s}
+    .trait-row:hover{border-color:var(--border);background:var(--surface)}
+    .trait-thumb{width:30px;height:30px;border-radius:5px;object-fit:cover;
+      border:1px solid var(--border);flex-shrink:0;background:var(--bg)}
+    .trait-name-txt{flex:1;font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+      cursor:pointer;border-radius:3px;padding:1px 3px}
+    .trait-name-txt:hover{background:var(--surface3)}
+    .trait-name-input{font-size:12px;font-weight:500;border:1px solid var(--accent);border-radius:3px;padding:1px 3px;
+      outline:none;font-family:'DM Sans',sans-serif;width:80px}
+    .rarity-slider{width:50px;-webkit-appearance:none;height:3px;border-radius:2px;
+      background:var(--border);outline:none;flex-shrink:0;cursor:pointer}
+    .rarity-slider::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;
+      background:var(--accent);cursor:pointer;border:2px solid white;box-shadow:0 0 0 1px var(--border2)}
+    .trait-rarity{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;min-width:28px;text-align:right;
+      cursor:pointer;border-radius:3px;padding:1px 3px}
+    .trait-rarity:hover{background:var(--surface3)}
+    .trait-rarity-input{font-size:10px;font-family:'DM Mono',monospace;width:35px;text-align:right;
+      border:1px solid var(--accent);border-radius:3px;padding:1px 3px;outline:none}
+    .trait-del{color:var(--muted2);cursor:pointer;font-size:11px;padding:2px 4px;border-radius:4px;transition:all .15s;flex-shrink:0}
+    .trait-del:hover{color:var(--red);background:#fee}
+    .add-trait-btn{width:100%;padding:6px;background:transparent;border:1px dashed var(--border2);
+      color:var(--muted);border-radius:6px;cursor:pointer;font-size:10px;font-weight:600;
+      font-family:'DM Sans',sans-serif;margin-top:4px;transition:all .2s}
+    .add-trait-btn:hover{border-color:var(--accent);color:var(--text);background:var(--surface2)}
+    .conflict-section{margin-top:20px;padding-top:18px;border-top:1px solid var(--border)}
+    .conflict-item{border-radius:7px;padding:8px 11px;margin-bottom:5px;font-size:11px;display:flex;align-items:center;gap:6px}
+    .conflict-item.type-exclude{background:#fff5f5;border:1px solid #ffd5d5}
+    .conflict-item.type-require{background:#f0fdf4;border:1px solid #bbf7d0}
+    .ct-a{font-weight:700}
+    .ct-sep{color:var(--muted);font-size:10px}
+    .ct-b{font-weight:700}
+    .ct-type{font-size:9px;padding:1px 5px;border-radius:4px;font-weight:700}
+    .ct-type.exclude{background:#fee;color:var(--red)}
+    .ct-type.require{background:#dcfce7;color:var(--green)}
+    .ct-del{margin-left:auto;color:var(--muted2);cursor:pointer;font-size:12px;padding:2px 4px;border-radius:4px;transition:all .15s}
+    .ct-del:hover{color:var(--red);background:#fee}
+    .add-rule-btn{width:100%;padding:8px;background:transparent;border:1px dashed var(--border2);
+      color:var(--muted);border-radius:7px;cursor:pointer;font-size:11px;font-weight:600;
+      font-family:'DM Sans',sans-serif;margin-top:7px;transition:all .2s}
+    .add-rule-btn:hover{border-color:var(--red);color:var(--red);background:#fef2f2}
+    .add-layer-btn{width:100%;padding:10px;background:transparent;border:1px dashed var(--border2);
+      color:var(--muted);border-radius:10px;cursor:pointer;font-size:11px;font-weight:600;
+      font-family:'DM Sans',sans-serif;margin-top:8px;margin-bottom:8px;transition:all .2s}
+    .add-layer-btn:hover{border-color:var(--accent);color:var(--text);background:var(--surface2)}
+    .center-inner{padding:24px;display:flex;flex-direction:column;align-items:center;gap:18px}
+    .preview-card{background:var(--surface);border-radius:14px;padding:18px;box-shadow:var(--sh-lg);width:100%;max-width:420px}
+    .preview-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .preview-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+    .preview-num{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);background:var(--surface2);padding:3px 10px;border-radius:100px;border:1px solid var(--border)}
+    #previewCanvas{border-radius:9px;background:var(--surface3);width:100%;aspect-ratio:1;display:block;border:1px solid var(--border);image-rendering:pixelated}
+    .preview-btns{display:flex;gap:8px;margin-top:12px}
+    .preview-btns .btn{flex:1;justify-content:center}
+    .progress-wrap{width:100%;max-width:420px;display:none}
+    .prog-bg{width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+    .prog-fill{height:100%;background:var(--accent);width:0%;transition:width .3s;border-radius:2px}
+    .prog-txt{text-align:center;font-size:11px;color:var(--muted);margin-top:7px;font-family:'DM Mono',monospace}
+    .gallery-wrap{width:100%;max-width:420px}
+    .gallery-title{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+    .gallery-title::after{content:'';flex:1;height:1px;background:var(--border)}
+    .gallery-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+    .gallery-item{border-radius:8px;overflow:hidden;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all .18s;position:relative}
+    .gallery-item:hover{border-color:var(--border2);box-shadow:var(--sh-lg);transform:translateY(-2px)}
+    .gallery-item img{width:100%;aspect-ratio:1;display:block;object-fit:cover;image-rendering:pixelated}
+    .gallery-item-id{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);color:#fff;font-size:9px;font-family:'DM Mono',monospace;padding:3px 5px;text-align:center}
+    .gallery-item-1of1{position:absolute;top:4px;right:4px;background:gold;color:#000;font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px}
+    .nft-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;
+      justify-content:center;align-items:center;backdrop-filter:blur(4px)}
+    .nft-modal{background:var(--surface);border-radius:16px;padding:24px;width:90%;max-width:460px;
+      box-shadow:var(--sh-lg);animation:popIn .2s ease;max-height:90vh;overflow-y:auto;position:relative}
+    @keyframes popIn{from{opacity:0;transform:scale(.94) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+    .nft-modal-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+    .nft-modal-title{font-size:15px;font-weight:700;letter-spacing:-.3px}
+    .close-btn{background:none;border:none;font-size:16px;cursor:pointer;color:var(--muted);width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center}
+    .close-btn:hover{background:var(--surface2);color:var(--text)}
+    .nft-modal-img-wrap{position:relative;margin-bottom:14px}
+    .nft-modal-img{width:100%;aspect-ratio:1;border-radius:10px;object-fit:cover;border:1px solid var(--border);image-rendering:pixelated;display:block}
+    .nav-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.9);border:1px solid var(--border);
+      width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+      cursor:pointer;font-size:16px;transition:all .15s;box-shadow:var(--sh)}
+    .nav-arrow:hover{background:#fff;box-shadow:var(--sh-lg);transform:translateY(-50%) scale(1.05)}
+    .nav-arrow.left{left:-12px}
+    .nav-arrow.right{right:-12px}
+    .nav-arrow:disabled{opacity:.3;cursor:not-allowed}
+    .nft-traits-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:16px}
+    .nft-trait-chip{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 10px}
+    .nft-trait-type{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:2px}
+    .nft-trait-val{font-size:12px;font-weight:600}
+    .nft-modal-btns{display:flex;gap:8px}
+    .nft-modal-btns .btn{flex:1;justify-content:center}
+    .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+    .stat-card{background:var(--surface2);padding:12px 14px;border-radius:9px;border:1px solid var(--border)}
+    .stat-val{font-size:22px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px}
+    .stat-lbl{font-size:9px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:1px;font-weight:700}
+    .inp-grp{margin-bottom:11px}
+    .inp-grp label{display:block;margin-bottom:4px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+    .inp-grp input,.inp-grp select{width:100%;padding:8px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;transition:border-color .2s}
+    .inp-grp input:focus,.inp-grp select:focus{outline:none;border-color:var(--accent)}
+    .divider{height:1px;background:var(--border);margin:18px 0}
+    .log-area{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px 13px;height:150px;overflow-y:auto;font-family:'DM Mono',monospace;font-size:10px;line-height:1.8}
+    .log-area .ok{color:#16a34a}.log-area .err{color:var(--red)}.log-area .warn{color:#d97706}.log-area .info{color:#2563eb}
+    .cm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:600;justify-content:center;align-items:center;backdrop-filter:blur(4px)}
+    .cm-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:26px;width:90%;max-width:380px;box-shadow:var(--sh-lg);animation:popIn .2s ease}
+    .cm-box h3{font-size:15px;font-weight:700;margin-bottom:18px;letter-spacing:-.3px}
+    .sel-row{margin-bottom:12px}
+    .sel-row label{display:block;margin-bottom:4px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+    .sel-row select{width:100%;padding:8px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif}
+    .sel-row select:focus{outline:none;border-color:var(--accent)}
+    .cm-btns{display:flex;gap:8px;margin-top:18px}
+    .cm-btns .btn{flex:1;justify-content:center}
+    .empty{text-align:center;padding:28px 16px;color:var(--muted)}
+    .empty .ico{font-size:32px;margin-bottom:8px;opacity:.4;display:block}
+    .empty p{font-size:13px;font-weight:500;margin-bottom:3px;color:var(--text)}
+    .empty small{font-size:11px}
+    ::-webkit-scrollbar{width:0;display:none}
+    *{scrollbar-width:none}
+    .spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-radius:50%;border-top-color:#fff;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .layer-body{overflow:hidden;transition:max-height .25s ease}
+    .oneofone-section{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+
+    /* TUTORIAL */
+    .tut-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;
+      justify-content:center;align-items:center;backdrop-filter:blur(4px)}
+    .tut-modal{background:var(--surface);border-radius:16px;padding:28px;width:90%;max-width:480px;
+      box-shadow:var(--sh-lg);animation:popIn .2s ease;max-height:85vh;overflow-y:auto}
+    .tut-modal h2{font-size:18px;font-weight:700;margin-bottom:12px;letter-spacing:-.3px}
+    .tut-modal p{font-size:13px;color:var(--text);line-height:1.7;margin-bottom:10px}
+    .tut-modal ul{padding-left:18px;font-size:12px;line-height:2;color:var(--text)}
+    .tut-modal .tut-icon{font-size:36px;margin-bottom:12px;display:block}
+    .tut-modal .tut-tip{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--muted);margin-top:12px}
+    .tut-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+    .tut-step-ind{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);background:var(--surface2);padding:4px 12px;border-radius:100px;border:1px solid var(--border)}
+    .tut-footer{display:flex;justify-content:space-between;margin-top:20px}
+    .help-btn{width:32px;height:32px;border-radius:50%;background:var(--surface);border:1px solid var(--border);
+      display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;font-weight:700;
+      color:var(--muted);transition:all .15s}
+    .help-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--surface2)}
+
+    /* RESPONSIVE MOBILE */
+    @media (max-width: 900px) {
+      .wrap{flex-direction:column}
+      .col,.col-mid,.col-right{max-height:none;border:none;border-bottom:1px solid var(--border);width:100%!important;min-width:0}
+      .col-right{border-left:none}
+      .resize-handle{display:none}
+      .hdr{padding:0 16px;height:50px;flex-wrap:wrap;gap:8px}
+      .hdr-logo{font-size:13px}
+      .hdr-btns{gap:5px}
+      .hdr-btns .btn{padding:6px 12px;font-size:11px}
+      .center-inner{padding:16px}
+      .preview-card{max-width:100%}
+      .gallery-grid{grid-template-columns:repeat(3,1fr)}
+      .stats-grid{grid-template-columns:1fr 1fr}
+      .nft-modal{width:95%;max-width:none;padding:16px}
+      .nav-arrow{width:30px;height:30px;font-size:13px}
+      .nav-arrow.left{left:-6px}
+      .nav-arrow.right{right:-6px}
+      .cm-box{width:95%;padding:20px}
+    }
+
+    @media (max-width: 480px) {
+      .hdr{height:auto;padding:10px 14px;flex-direction:column;align-items:flex-start;gap:8px}
+      .hdr-btns{width:100%;justify-content:space-between}
+      .hdr-btns .btn{flex:1;justify-content:center;padding:8px 8px;font-size:10px}
+      .pad{padding:14px}
+      .gallery-grid{grid-template-columns:repeat(2,1fr)}
+      .nft-traits-grid{grid-template-columns:1fr}
+      .upload{padding:16px 10px}
+      .layer-hdr{padding:8px 10px;gap:5px;flex-wrap:wrap}
+      .layer-act{gap:3px}
+      .icon-btn{padding:3px 5px;font-size:10px}
+      .trait-row{padding:5px 7px;gap:5px}
+      .rarity-slider{width:40px}
+      .stat-val{font-size:18px}
+      .log-area{height:100px}
+    }
+  </style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-logo">GenerateMyNFT <span class="dot"></span><span class="badge">10K</span></div>
+  <div class="hdr-btns">
+    <button class="help-btn" onclick="openTutorial()" title="How to use">?</button>
+    <button class="btn btn-ghost" onclick="randomizePreview()">🎲 Random</button>
+    <button class="btn btn-dark" id="genBtn" onclick="generateCollection()">🚀 Generate</button>
+    <button class="btn btn-red" id="exportBtn" onclick="exportCollection()" disabled>📦 Export ZIP</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <!-- LEFT -->
+  <div class="col pad">
+    <div class="stitle">Layers</div>
+    <div class="upload" id="uploadZone">
+      <div class="upload-icon">📁</div>
+      <div class="upload-title">Drop layer folders here</div>
+      <div class="upload-hint">or click to select folder<br><span style="color:var(--muted2)">/LayerName/TraitName.png</span></div>
+      <input type="file" id="fileInput" webkitdirectory directory multiple style="display:none">
+    </div>
+    <div id="layersContainer">
+      <div class="empty"><span class="ico">🎭</span><p>No layers yet</p><small>Upload a folder first</small></div>
+    </div>
+    <button class="add-layer-btn" onclick="addNewLayer()">+ Add New Layer</button>
+    <div class="conflict-section">
+      <div class="stitle">Rules</div>
+      <div id="conflictsList"><span style="font-size:11px;color:var(--muted)">No rules yet</span></div>
+      <button class="add-rule-btn" onclick="openCModal('exclude')" style="border-color:#ffd5d5;color:var(--red)">+ Cannot Pair With</button>
+      <button class="add-rule-btn" onclick="openCModal('require')" style="border-color:#bbf7d0;color:var(--green)">+ Must Pair With</button>
+    </div>
+    <div class="oneofone-section">
+      <div class="stitle">1/1 Art</div>
+      <div id="oneOfOneList"><span style="font-size:11px;color:var(--muted)">No 1/1 art yet</span></div>
+      <button class="add-rule-btn" onclick="openOneOfOneModal()">+ Add 1/1 Art</button>
+    </div>
+  </div>
+
+  <div class="resize-handle" id="resizeLeft"></div>
+
+  <!-- CENTER -->
+  <div class="col-mid">
+    <div class="center-inner">
+      <div class="preview-card">
+        <div class="preview-top">
+          <span class="preview-label">Preview</span>
+          <span class="preview-num">#<span id="previewId">—</span></span>
+        </div>
+        <div style="position:relative">
+          <canvas id="previewCanvas" width="512" height="512"></canvas>
+        </div>
+        <div class="preview-btns">
+          <button class="btn btn-ghost btn-sm" onclick="downloadPreview()">💾 Save PNG</button>
+          <button class="btn btn-dark" onclick="randomizePreview()">🎲 Randomize</button>
+        </div>
+      </div>
+      <div class="progress-wrap" id="progressWrap">
+        <div class="prog-bg"><div class="prog-fill" id="progFill"></div></div>
+        <div class="prog-txt" id="progTxt">Ready...</div>
+      </div>
+      <div class="gallery-wrap" id="galleryWrap" style="display:none">
+        <div class="gallery-title">Generated NFTs <span id="galleryCnt" style="font-size:11px;font-weight:500;font-family:'DM Mono',monospace;letter-spacing:0;text-transform:none;color:var(--muted2)"></span></div>
+        <div class="gallery-grid" id="galleryGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="resize-handle" id="resizeRight"></div>
+
+  <!-- RIGHT -->
+  <div class="col col-right pad">
+    <div class="stitle">Stats</div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-val" id="sGenerated">0</div><div class="stat-lbl">Generated</div></div>
+      <div class="stat-card"><div class="stat-val" id="sCombos">0</div><div class="stat-lbl">Combos</div></div>
+      <div class="stat-card"><div class="stat-val" id="sLayers">0</div><div class="stat-lbl">Layers</div></div>
+      <div class="stat-card"><div class="stat-val" id="sTraits">0</div><div class="stat-lbl">Traits</div></div>
+    </div>
+    <div class="stitle">Settings</div>
+    <div class="inp-grp"><label>Collection Size (Max 10K)</label><input type="number" id="colSize" value="100" min="1" max="10000"></div>
+    <div class="inp-grp"><label>Image Size (px)</label><input type="number" id="imgSize" value="512" min="64" max="2048" step="64"></div>
+    <div class="inp-grp"><label>Collection Name</label><input type="text" id="colName" value="My NFT Collection"></div>
+    <div class="inp-grp"><label>Description</label><input type="text" id="colDesc" value="Generated with GenerateMyNFT"></div>
+    <div class="divider"></div>
+    <div class="stitle">Log</div>
+    <div class="log-area" id="logArea">
+      <div class="info">> System ready</div>
+      <div class="ok">> Upload layer folders to start</div>
+    </div>
+  </div>
+</div>
+
+<!-- NFT Detail Modal -->
+<div class="nft-overlay" id="nftOverlay">
+  <div class="nft-modal">
+    <div class="nft-modal-top">
+      <span class="nft-modal-title" id="modalTitle">NFT #1</span>
+      <button class="close-btn" onclick="closeNftModal()">✕</button>
+    </div>
+    <div class="nft-modal-img-wrap">
+      <button class="nav-arrow left" onclick="navNft(-1)">◀</button>
+      <img id="modalImg" class="nft-modal-img" src="" alt="">
+      <button class="nav-arrow right" onclick="navNft(1)">▶</button>
+    </div>
+    <div class="nft-traits-grid" id="modalTraits"></div>
+    <div class="nft-modal-btns" id="modalBtns">
+      <button class="btn btn-ghost" onclick="closeNftModal()">Close</button>
+      <button class="btn btn-dark" id="modalActionBtn" onclick="reGenSingle()">🔄 Re-generate</button>
+    </div>
+  </div>
+</div>
+
+<!-- Conflict/Rule Modal -->
+<div class="cm-overlay" id="conflictModal">
+  <div class="cm-box">
+    <h3 id="ruleModalTitle">⚙️ Add Rule</h3>
+    <div class="sel-row"><label>Trait A</label><select id="selA"></select></div>
+    <div class="sel-row"><label id="selBLabel">Trait B</label><select id="selB"></select></div>
+    <div class="cm-btns">
+      <button class="btn btn-ghost" onclick="closeCModal()">Cancel</button>
+      <button class="btn btn-dark" onclick="saveConflict()">Save Rule</button>
+    </div>
+  </div>
+</div>
+
+<!-- 1/1 Art Modal -->
+<div class="cm-overlay" id="oneOfOneModal">
+  <div class="cm-box">
+    <h3>🎨 Add 1/1 Art</h3>
+    <div class="sel-row"><label>Upload Image</label>
+      <input type="file" id="oneOfOneFile" accept="image/*" style="font-size:12px">
+    </div>
+    <div class="sel-row"><label>Place at position # (number in collection)</label>
+      <input type="number" id="oneOfOnePos" value="1" min="1" max="10000" style="width:100%;padding:8px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:'DM Sans',sans-serif">
+    </div>
+    <div class="cm-btns">
+      <button class="btn btn-ghost" onclick="closeOneOfOneModal()">Cancel</button>
+      <button class="btn btn-dark" onclick="saveOneOfOne()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tutorial -->
+<div class="tut-overlay" id="tutOverlay">
+  <div class="tut-modal">
+    <div class="tut-header">
+      <span class="tut-step-ind" id="tutStepInd">1 / 5</span>
+      <button class="close-btn" onclick="closeTutorial()">✕</button>
+    </div>
+    <div id="tutContent"></div>
+    <div class="tut-footer">
+      <button class="btn btn-ghost" id="tutPrev" onclick="tutNav(-1)">← Back</button>
+      <button class="btn btn-dark" id="tutNext" onclick="tutNav(1)">Next →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────
+let layers = [];
+let conflicts = [];
+let generatedNFTs = [];
+let isGenerating = false;
+let activeNftIdx = null;
+let oneOfOnes = []; // {position, dataUrl, name}
+
+// ── UPLOAD ─────────────────────────────────
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('over'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('over'); handleFiles(e.dataTransfer.files); });
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+function handleFiles(files) {
+  const imgFiles = Array.from(files).filter(f => f.type.startsWith('image/') || /\.(png|jpe?g|webp|gif)$/i.test(f.name));
+  if (!imgFiles.length) { log('No image files found!', 'err'); return; }
+  log(`Loading ${imgFiles.length} image files...`, 'info');
+  const layerMap = {};
+  const promises = imgFiles.map(file => new Promise(resolve => {
+    const path = file.webkitRelativePath || file.name;
+    const parts = path.split('/');
+    const layerName = parts.length >= 2 ? parts[parts.length - 2] : 'Default';
+    const traitName = parts[parts.length - 1].replace(/\.[^/.]+$/, '');
+    const isGif = file.type === 'image/gif' || /\.gif$/i.test(file.name);
+    if (!layerMap[layerName]) layerMap[layerName] = [];
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const src = ev.target.result;
+      const img = new Image();
+      img.onload = () => {
+        layerMap[layerName].push({ name: traitName, rarity: 10, image: img, src, isGif });
+        resolve();
+      };
+      img.onerror = () => { log(`Failed to load: ${traitName}`, 'warn'); resolve(); };
+      img.src = src;
+    };
+    reader.onerror = () => resolve();
+    reader.readAsDataURL(file);
+  }));
+  Promise.all(promises).then(() => finalizeLayers(layerMap));
+}
+
+function finalizeLayers(layerMap) {
+  const colors = ['#e63946','#2a9d8f','#457b9d','#e9c46a','#f4a261','#a8dadc','#a29bfe','#fd79a8'];
+
+  // Auto-sort layers by common NFT order
+  const layerOrder = [
+    'background','bg','back',
+    'skin','body','base','fur',
+    'clothes','clothing','outfit','shirt','top','costume','armor',
+    'neck','necklace','chain',
+    'face','head','hair',
+    'eyes','eye',
+    'eyebrows','brows',
+    'nose',
+    'mouth','lips',
+    'ears','ear','earring','earrings',
+    'glasses','eyewear',
+    'hat','hats','headwear','cap','helmet',
+    'mustache','beard','facial_hair',
+    'hand','hands','weapon',
+    'accessory','accessories','special','extra',
+    'tier','speciality','effect','effects','overlay'
+  ];
+
+  function getLayerPriority(name) {
+    const lower = name.toLowerCase().replace(/[^a-z]/g, '');
+    for (let i = 0; i < layerOrder.length; i++) {
+      if (lower.includes(layerOrder[i])) return i;
+    }
+    return 999; // unknown layers go to end
+  }
+
+  const sortedNames = Object.keys(layerMap).sort((a, b) => getLayerPriority(a) - getLayerPriority(b));
+
+  layers = sortedNames.map((name, idx) => {
+    const traits = layerMap[name];
+    const perTrait = Math.max(1, Math.floor(100 / traits.length));
+    const remainder = 100 - (perTrait * traits.length);
+    return { name, color: colors[idx % colors.length], traits: traits.map((t, i) => ({ ...t, rarity: perTrait + (i === 0 ? remainder : 0) })), hidden: false, minimized: false };
+  });
+  log(`✓ ${layers.length} layers, ${layers.reduce((s,l)=>s+l.traits.length,0)} traits loaded!`, 'ok');
+  log(`Layer order: ${layers.map(l=>l.name).join(' → ')}`, 'info');
+  renderLayers(); randomizePreview(); updateStats();
+}
+
+// ── ADD NEW LAYER ──────────────────────────
+function addNewLayer() {
+  const name = prompt('New layer name:');
+  if (!name || !name.trim()) return;
+  const colors = ['#e63946','#2a9d8f','#457b9d','#e9c46a','#f4a261','#a8dadc','#a29bfe','#fd79a8'];
+  layers.push({ name: name.trim(), color: colors[layers.length % colors.length], traits: [], hidden: false, minimized: false });
+  log(`Layer "${name.trim()}" added`, 'ok');
+  renderLayers(); updateStats();
+}
+
+// ── RENDER LAYERS ──────────────────────────
+function renderLayers() {
+  const c = document.getElementById('layersContainer');
+  if (!layers.length) { c.innerHTML = `<div class="empty"><span class="ico">🎭</span><p>No layers yet</p><small>Upload a folder first</small></div>`; return; }
+  c.innerHTML = layers.map((layer, li) => `
+    <div class="layer-wrap ${layer.hidden ? 'layer-hidden' : ''}" id="lw-${li}">
+      <div class="layer-hdr">
+        <span class="drag-handle" title="Drag to reorder" data-idx="${li}">⠿</span>
+        <span class="layer-dot" style="background:${layer.color}"></span>
+        <span class="layer-name-txt" ondblclick="renameLayer(${li})">${layer.name}</span>
+        ${layer.hidden ? '<span class="hidden-badge">Hidden</span>' : ''}
+        <span class="layer-count">${layer.traits.length}</span>
+        <div class="layer-act">
+          <button class="icon-btn" onclick="addTraitToLayer(${li})" title="Add trait">+</button>
+          <button class="icon-btn" onclick="toggleMinimize(${li})" title="${layer.minimized?'Expand':'Minimize'}"><span style="display:flex;align-items:center;justify-content:center;transition:transform .2s;transform:rotate(${layer.minimized ? '-90deg' : '0deg'})">▾</span></button>
+          <button class="icon-btn ${layer.hidden ? 'active-hide' : ''}" onclick="toggleHide(${li})" title="${layer.hidden?'Show':'Hide'}">${layer.hidden ? '🙈' : '👁️'}</button>
+          <button class="icon-btn del" onclick="deleteLayer(${li})" title="Delete layer">🗑</button>
+        </div>
+      </div>
+      <div class="layer-body" id="lb-${li}" style="max-height:${layer.minimized ? '0' : '2000px'}">
+        <div class="trait-list">
+          ${layer.traits.map((t, ti) => `
+            <div class="trait-row">
+              <img class="trait-thumb" src="${t.src}" alt="${t.name}">
+              <span class="trait-name-txt" ondblclick="renameTrait(${li},${ti})">${t.name}</span>
+              <input type="range" class="rarity-slider" min="0" max="100" value="${t.rarity}" oninput="updateRarity(${li},${ti},this.value)">
+              <span class="trait-rarity" id="r-${li}-${ti}" ondblclick="editRarity(${li},${ti})">${t.rarity}%</span>
+              <span class="trait-del" onclick="deleteTrait(${li},${ti})" title="Delete trait">✕</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── RENAME LAYER ───────────────────────────
+function renameLayer(li) {
+  const el = document.querySelector(`#lw-${li} .layer-name-txt`);
+  const old = layers[li].name;
+  const input = document.createElement('input');
+  input.className = 'layer-name-input';
+  input.value = old;
+  el.replaceWith(input);
+  input.focus(); input.select();
+  const save = () => {
+    const val = input.value.trim() || old;
+    layers[li].name = val;
+    log(`Layer renamed: "${old}" → "${val}"`, 'info');
+    renderLayers();
+  };
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = old; input.blur(); } });
+}
+
+// ── RENAME TRAIT ───────────────────────────
+function renameTrait(li, ti) {
+  const el = document.querySelectorAll(`#lw-${li} .trait-name-txt`)[ti];
+  const old = layers[li].traits[ti].name;
+  const input = document.createElement('input');
+  input.className = 'trait-name-input';
+  input.value = old;
+  el.replaceWith(input);
+  input.focus(); input.select();
+  const save = () => {
+    const val = input.value.trim() || old;
+    layers[li].traits[ti].name = val;
+    renderLayers();
+  };
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = old; input.blur(); } });
+}
+
+// ── EDIT RARITY (click to type) ────────────
+function editRarity(li, ti) {
+  const el = document.getElementById(`r-${li}-${ti}`);
+  const old = layers[li].traits[ti].rarity;
+  const input = document.createElement('input');
+  input.className = 'trait-rarity-input';
+  input.type = 'number'; input.min = 0; input.max = 100;
+  input.value = old;
+  el.replaceWith(input);
+  input.focus(); input.select();
+  const save = () => {
+    let val = parseInt(input.value);
+    if (isNaN(val) || val < 0) val = 0;
+    if (val > 100) val = 100;
+    updateRarity(li, ti, val);
+    renderLayers();
+  };
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = old; input.blur(); } });
+}
+
+// ── DELETE TRAIT / LAYER ────────────────────
+function deleteTrait(li, ti) {
+  const name = layers[li].traits[ti].name;
+  layers[li].traits.splice(ti, 1);
+  log(`Trait "${name}" deleted`, 'warn');
+  renderLayers(); updateStats();
+}
+
+function deleteLayer(li) {
+  if (!confirm(`Delete layer "${layers[li].name}" and all its traits?`)) return;
+  const name = layers[li].name;
+  layers.splice(li, 1);
+  log(`Layer "${name}" deleted`, 'warn');
+  renderLayers(); updateStats(); randomizePreview();
+}
+
+// ── ADD TRAIT TO EXISTING LAYER ────────────
+function addTraitToLayer(li) {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*'; input.multiple = true;
+  input.onchange = e => {
+    const files = Array.from(e.target.files);
+    const promises = files.map(file => new Promise(resolve => {
+      const traitName = file.name.replace(/\.[^/.]+$/, '');
+      const isGif = file.type === 'image/gif' || /\.gif$/i.test(file.name);
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const src = ev.target.result;
+        const img = new Image();
+        img.onload = () => {
+          layers[li].traits.push({ name: traitName, rarity: 10, image: img, src, isGif });
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = src;
+      };
+      reader.onerror = () => resolve();
+      reader.readAsDataURL(file);
+    }));
+    Promise.all(promises).then(() => {
+      log(`${files.length} traits added to "${layers[li].name}"`, 'ok');
+      renderLayers(); updateStats();
+    });
+  };
+  input.click();
+}
+
+function updateRarity(li, ti, val) {
+  const newVal = parseInt(val);
+  const traits = layers[li].traits;
+  if (traits.length <= 1) { traits[ti].rarity = newVal; return; }
+
+  const oldVal = traits[ti].rarity;
+  const diff = newVal - oldVal;
+  traits[ti].rarity = newVal;
+
+  // Distribute the difference among other traits proportionally
+  const others = traits.filter((_, i) => i !== ti);
+  const othersTotal = others.reduce((s, t) => s + t.rarity, 0);
+
+  if (othersTotal === 0) {
+    // If all others are 0, distribute equally
+    const each = Math.floor(diff / others.length);
+    others.forEach(t => t.rarity = Math.max(0, -each));
+  } else {
+    let remaining = -diff;
+    others.forEach(t => {
+      const proportion = t.rarity / othersTotal;
+      const change = Math.round(remaining * proportion);
+      t.rarity = Math.max(0, Math.min(100, t.rarity + change));
+    });
+  }
+
+  // Fix rounding: ensure total = 100
+  const total = traits.reduce((s, t) => s + t.rarity, 0);
+  if (total !== 100 && traits.length > 1) {
+    const fixIdx = traits.findIndex((_, i) => i !== ti && traits[i].rarity > 0);
+    if (fixIdx >= 0) traits[fixIdx].rarity = Math.max(0, traits[fixIdx].rarity + (100 - total));
+  }
+
+  // Update all sliders and labels in this layer
+  traits.forEach((t, i) => {
+    const slider = document.querySelector(`#lw-${li} .trait-row:nth-child(${i+1}) .rarity-slider`);
+    const label = document.getElementById(`r-${li}-${i}`);
+    if (slider) slider.value = t.rarity;
+    if (label) label.textContent = t.rarity + '%';
+  });
+}
+
+function toggleHide(li) {
+  layers[li].hidden = !layers[li].hidden;
+  log(`"${layers[li].name}" ${layers[li].hidden ? 'hidden' : 'visible'}`, layers[li].hidden ? 'warn' : 'info');
+  renderLayers(); randomizePreview(); updateStats();
+}
+
+function toggleMinimize(li) { layers[li].minimized = !layers[li].minimized; renderLayers(); }
+
+// ── DRAG REORDER ───────────────────────────
+let dragState = { active: false };
+
+function initDragListeners() {
+  const container = document.getElementById('layersContainer');
+  container.addEventListener('mousedown', e => {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    e.preventDefault();
+    const idx = parseInt(handle.dataset.idx);
+    const el = document.getElementById(`lw-${idx}`);
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const placeholder = document.createElement('div');
+    placeholder.className = 'layer-placeholder';
+    placeholder.style.height = rect.height + 'px';
+    el.parentNode.insertBefore(placeholder, el);
+    el.classList.add('layer-dragging');
+    el.style.width = rect.width + 'px';
+    el.style.left = rect.left + 'px';
+    el.style.top = rect.top + 'px';
+    document.body.appendChild(el);
+    dragState = { active: true, idx, el, placeholder, startY: e.clientY, elTop: rect.top };
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragState.active) return;
+    e.preventDefault();
+    dragState.el.style.top = (dragState.elTop + e.clientY - dragState.startY) + 'px';
+    const container = document.getElementById('layersContainer');
+    const items = Array.from(container.querySelectorAll('.layer-wrap, .layer-placeholder'));
+    for (let i = 0; i < items.length; i++) {
+      if (items[i] === dragState.placeholder) continue;
+      const r = items[i].getBoundingClientRect();
+      if (e.clientY < r.top + r.height / 2) { container.insertBefore(dragState.placeholder, items[i]); return; }
+    }
+    container.appendChild(dragState.placeholder);
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragState.active) return;
+    const { el, placeholder, idx } = dragState;
+    const container = document.getElementById('layersContainer');
+    const items = Array.from(container.querySelectorAll('.layer-wrap, .layer-placeholder'));
+    let newIdx = items.indexOf(placeholder);
+    el.classList.remove('layer-dragging');
+    el.style.width = ''; el.style.left = ''; el.style.top = '';
+    container.insertBefore(el, placeholder);
+    placeholder.remove();
+    dragState = { active: false };
+    if (newIdx !== idx && newIdx >= 0) {
+      const moved = layers.splice(idx, 1)[0];
+      if (newIdx > idx) newIdx--;
+      layers.splice(newIdx, 0, moved);
+      log(`Layer "${moved.name}" → position ${newIdx + 1}`, 'info');
+      renderLayers(); randomizePreview(); updateStats();
+    }
+  });
+}
+initDragListeners();
+
+// ── STATS ──────────────────────────────────
+function updateStats() {
+  const active = layers.filter(l => !l.hidden);
+  const total = layers.reduce((s,l) => s+l.traits.length, 0);
+  let combos = active.length ? 1 : 0;
+  active.forEach(l => { if (l.traits.length) combos *= l.traits.length; });
+  document.getElementById('sLayers').textContent = layers.length ? `${active.length}/${layers.length}` : '0';
+  document.getElementById('sTraits').textContent = total;
+  document.getElementById('sCombos').textContent = combos > 999999 ? '∞' : combos.toLocaleString();
+  document.getElementById('sGenerated').textContent = generatedNFTs.length;
+}
+
+// ── PREVIEW ────────────────────────────────
+function paintCanvas(canvas, traitsArr, size) {
+  const ctx = canvas.getContext('2d');
+  canvas.width = size; canvas.height = size;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, size, size);
+  traitsArr.forEach(({ trait }) => { if (trait && trait.image) ctx.drawImage(trait.image, 0, 0, size, size); });
+}
+
+function weightedRandom(traits) {
+  const total = traits.reduce((s,t) => s+t.rarity, 0);
+  if (!total) return traits[Math.floor(Math.random()*traits.length)];
+  let r = Math.random() * total;
+  for (const t of traits) { r -= t.rarity; if (r <= 0) return t; }
+  return traits[traits.length - 1];
+}
+
+function buildRandomTraits() {
+  const active = layers.filter(l => !l.hidden && l.traits.length);
+  return active.map(l => ({ layer: l.name, trait: weightedRandom(l.traits) }));
+}
+
+function randomizePreview() {
+  if (!layers.length || !layers.some(l => l.traits.length)) { return; }
+  const traits = buildRandomTraits();
+  const size = parseInt(document.getElementById('imgSize').value) || 512;
+  paintCanvas(document.getElementById('previewCanvas'), traits, size);
+  document.getElementById('previewId').textContent = Math.floor(Math.random() * 10000);
+}
+
+function downloadPreview() {
+  const a = document.createElement('a');
+  a.download = 'preview.png';
+  a.href = document.getElementById('previewCanvas').toDataURL('image/png');
+  a.click(); log('Preview saved!', 'ok');
+}
+
+// ── CONFLICTS / RULES ──────────────────────
+let currentRuleType = 'exclude';
+
+function openCModal(type) {
+  if (!layers.length) { log('Upload layers first!', 'warn'); return; }
+  currentRuleType = type;
+  if (type === 'exclude') {
+    document.getElementById('ruleModalTitle').textContent = '❌ Cannot Pair With';
+    document.getElementById('selBLabel').textContent = 'Trait B — cannot appear with A';
+  } else {
+    document.getElementById('ruleModalTitle').textContent = '✅ Must Pair With';
+    document.getElementById('selBLabel').textContent = 'Trait B — must appear with A';
+  }
+  ['selA','selB'].forEach(id => {
+    const sel = document.getElementById(id); sel.innerHTML = '';
+    layers.forEach(layer => {
+      const grp = document.createElement('optgroup'); grp.label = layer.name;
+      layer.traits.forEach(t => { const o = document.createElement('option'); o.value = `${layer.name}::${t.name}`; o.textContent = t.name; grp.appendChild(o); });
+      sel.appendChild(grp);
+    });
+  });
+  document.getElementById('conflictModal').style.display = 'flex';
+}
+function closeCModal() { document.getElementById('conflictModal').style.display = 'none'; }
+
+function saveConflict() {
+  const a = document.getElementById('selA').value;
+  const b = document.getElementById('selB').value;
+  const type = currentRuleType;
+  if (a === b) { log('Trait A and B cannot be the same!', 'err'); return; }
+  conflicts.push({ traitA: a, traitB: b, type });
+  renderConflicts(); closeCModal();
+  const symbol = type === 'exclude' ? '≠' : '=';
+  log(`Rule: ${a.split('::')[1]} ${symbol} ${b.split('::')[1]} (${type})`, 'ok');
+}
+
+function renderConflicts() {
+  const el = document.getElementById('conflictsList');
+  if (!conflicts.length) { el.innerHTML = '<span style="font-size:11px;color:var(--muted)">No rules yet</span>'; return; }
+  el.innerHTML = conflicts.map((c,i) => {
+    const typeClass = c.type === 'exclude' ? 'type-exclude' : 'type-require';
+    const symbol = c.type === 'exclude' ? '≠' : '=';
+    const badge = c.type === 'exclude' ? '<span class="ct-type exclude">EXCLUDE</span>' : '<span class="ct-type require">REQUIRE</span>';
+    return `<div class="conflict-item ${typeClass}">
+      ${badge}
+      <span class="ct-a">${c.traitA.split('::')[1]}</span>
+      <span class="ct-sep">${symbol}</span>
+      <span class="ct-b">${c.traitB.split('::')[1]}</span>
+      <span class="ct-del" onclick="removeConflict(${i})">✕</span>
+    </div>`;
+  }).join('');
+}
+function removeConflict(i) { conflicts.splice(i,1); renderConflicts(); log('Rule removed','warn'); }
+
+function hasConflict(traitsArr) {
+  const keys = traitsArr.map(t => `${t.layer}::${t.trait.name}`);
+  for (const c of conflicts) {
+    const hasA = keys.includes(c.traitA);
+    const hasB = keys.includes(c.traitB);
+    if (c.type === 'exclude' && hasA && hasB) return true;
+    if (c.type === 'require' && hasA && !hasB) return true;
+    if (c.type === 'require' && hasB && !hasA) return true;
+  }
+  return false;
+}
+
+// ── 1/1 ART ────────────────────────────────
+function openOneOfOneModal() {
+  document.getElementById('oneOfOneModal').style.display = 'flex';
+}
+function closeOneOfOneModal() { document.getElementById('oneOfOneModal').style.display = 'none'; }
+
+function saveOneOfOne() {
+  const fileEl = document.getElementById('oneOfOneFile');
+  const pos = parseInt(document.getElementById('oneOfOnePos').value);
+  if (!fileEl.files.length) { log('Select an image first!', 'err'); return; }
+  if (!pos || pos < 1) { log('Position must be >= 1', 'err'); return; }
+  const file = fileEl.files[0];
+  const isGif = file.type === 'image/gif' || /\.gif$/i.test(file.name);
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const src = ev.target.result;
+    const img = new Image();
+    img.onload = () => {
+      oneOfOnes.push({ position: pos, dataUrl: src, name: file.name.replace(/\.[^/.]+$/, ''), image: img, isGif });
+      log(`1/1 Art "${file.name}" placed at position #${pos}${isGif ? ' (GIF)' : ''}`, 'ok');
+      renderOneOfOnes();
+      closeOneOfOneModal();
+      fileEl.value = '';
+    };
+    img.src = src;
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderOneOfOnes() {
+  const el = document.getElementById('oneOfOneList');
+  if (!oneOfOnes.length) { el.innerHTML = '<span style="font-size:11px;color:var(--muted)">No 1/1 art yet</span>'; return; }
+  el.innerHTML = oneOfOnes.map((o,i) => `
+    <div class="conflict-item type-require" style="gap:8px">
+      <img src="${o.dataUrl}" style="width:24px;height:24px;border-radius:4px;object-fit:cover">
+      <span style="font-weight:600;font-size:11px;flex:1;cursor:pointer" ondblclick="renameOneOfOne(${i})">${o.name}</span>
+      <span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">#${o.position}</span>
+      <span class="ct-del" onclick="removeOneOfOne(${i})">✕</span>
+    </div>
+  `).join('');
+}
+
+function renameOneOfOne(i) {
+  const current = oneOfOnes[i].name;
+  const newName = prompt('Rename 1/1 art:', current);
+  if (newName && newName.trim()) {
+    oneOfOnes[i].name = newName.trim();
+    log(`1/1 renamed to "${newName.trim()}"`, 'ok');
+    renderOneOfOnes();
+  }
+}
+function removeOneOfOne(i) { oneOfOnes.splice(i,1); renderOneOfOnes(); log('1/1 removed','warn'); }
+
+// ── GENERATE ───────────────────────────────
+async function generateCollection() {
+  if (isGenerating) return;
+  const active = layers.filter(l => !l.hidden && l.traits.length);
+  if (!active.length) { log('Upload layers or unhide them!', 'warn'); return; }
+  const count = parseInt(document.getElementById('colSize').value) || 100;
+  if (count > 10000) { log('Max 10K!', 'err'); return; }
+
+  isGenerating = true;
+  const genBtn = document.getElementById('genBtn');
+  genBtn.disabled = true; genBtn.innerHTML = '<span class="spinner"></span> Generating...';
+  document.getElementById('exportBtn').disabled = true;
+
+  const pw = document.getElementById('progressWrap');
+  const pf = document.getElementById('progFill');
+  const pt = document.getElementById('progTxt');
+  pw.style.display = 'block'; generatedNFTs = [];
+
+  const size = parseInt(document.getElementById('imgSize').value) || 512;
+  let attempts = 0;
+  const maxAttempts = count * 100;
+
+  // Reserve positions for 1/1 arts
+  const reservedPositions = new Set(oneOfOnes.map(o => o.position).filter(p => p <= count));
+
+  while (generatedNFTs.length < count && attempts < maxAttempts) {
+    const currentPos = generatedNFTs.length + 1;
+
+    // Check if this position is reserved for 1/1
+    const oneOfOne = oneOfOnes.find(o => o.position === currentPos);
+    if (oneOfOne) {
+      let dataUrl;
+      if (oneOfOne.isGif) {
+        // Keep original GIF data — don't render to canvas
+        dataUrl = oneOfOne.dataUrl;
+      } else {
+        const c = document.createElement('canvas');
+        c.width = size; c.height = size;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(oneOfOne.image, 0, 0, size, size);
+        dataUrl = c.toDataURL('image/png');
+      }
+      generatedNFTs.push({ id: currentPos, dna: `1/1_${oneOfOne.name}`, traits: [{layer:'1/1 Art', trait:{name:oneOfOne.name}}], dataUrl, isOneOfOne: true, isGif: oneOfOne.isGif || false });
+      pf.style.width = (generatedNFTs.length / count * 100) + '%';
+      pt.textContent = `${generatedNFTs.length}/${count}`;
+      continue;
+    }
+
+    attempts++;
+    const selected = active.map(l => ({ layer: l.name, trait: weightedRandom(l.traits) }));
+    if (hasConflict(selected)) continue;
+    const dna = selected.map(s => s.trait.name).join('|');
+    if (generatedNFTs.some(n => n.dna === dna)) continue;
+
+    const c = document.createElement('canvas');
+    paintCanvas(c, selected, size);
+    generatedNFTs.push({ id: currentPos, dna, traits: selected, dataUrl: c.toDataURL('image/png'), isOneOfOne: false, isGif: false });
+
+    pf.style.width = (generatedNFTs.length / count * 100) + '%';
+    pt.textContent = `${generatedNFTs.length}/${count}`;
+    if (generatedNFTs.length % 20 === 0) await tick();
+  }
+
+  isGenerating = false;
+  genBtn.disabled = false; genBtn.innerHTML = '🚀 Generate';
+  document.getElementById('exportBtn').disabled = false;
+  if (generatedNFTs.length < count) log(`Only ${generatedNFTs.length} unique NFTs out of ${count}`, 'warn');
+  else log(`✓ ${generatedNFTs.length} NFTs generated successfully!`, 'ok');
+  updateStats();
+  pt.textContent = `Done! ${generatedNFTs.length} NFTs ready`;
+  renderGallery();
+}
+
+// ── GALLERY ────────────────────────────────
+function renderGallery() {
+  const wrap = document.getElementById('galleryWrap');
+  const grid = document.getElementById('galleryGrid');
+  if (!generatedNFTs.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  document.getElementById('galleryCnt').textContent = `(${generatedNFTs.length})`;
+  grid.innerHTML = generatedNFTs.map((nft, i) => `
+    <div class="gallery-item" onclick="openNftModal(${i})">
+      <img src="${nft.dataUrl}" alt="#${nft.id}" loading="lazy">
+      <div class="gallery-item-id">#${nft.id}</div>
+      ${nft.isOneOfOne ? '<div class="gallery-item-1of1">1/1</div>' : ''}
+    </div>
+  `).join('');
+}
+
+// ── NFT MODAL WITH NAVIGATION ──────────────
+function openNftModal(idx) {
+  activeNftIdx = idx;
+  renderNftModal();
+  document.getElementById('nftOverlay').style.display = 'flex';
+}
+
+function renderNftModal() {
+  const nft = generatedNFTs[activeNftIdx];
+  const isOne = nft.isOneOfOne;
+
+  // Title — editable for 1/1
+  if (isOne) {
+    const customName = nft.customName || `NFT #${nft.id} (1/1)`;
+    document.getElementById('modalTitle').innerHTML = `<span class="nft-modal-title-txt" ondblclick="renameNft()" style="cursor:pointer">${customName}</span> <span style="font-size:10px;color:var(--muted);font-weight:400">click to rename</span>`;
+  } else {
+    document.getElementById('modalTitle').textContent = `NFT #${nft.id}`;
+  }
+
+  document.getElementById('modalImg').src = nft.dataUrl;
+
+  // Traits — editable for 1/1
+  if (isOne) {
+    document.getElementById('modalTraits').innerHTML = nft.traits.map((t, i) => `
+      <div class="nft-trait-chip" style="cursor:pointer" ondblclick="editOneOfOneTrait(${i})">
+        <div class="nft-trait-type">${t.layer}</div>
+        <div class="nft-trait-val">${t.trait.name}</div>
+      </div>
+    `).join('') + `<div class="nft-trait-chip" style="cursor:pointer;border-style:dashed;text-align:center" onclick="addOneOfOneTrait()">
+      <div class="nft-trait-val" style="color:var(--muted)">+ Add Trait</div>
+    </div>`;
+  } else {
+    document.getElementById('modalTraits').innerHTML = nft.traits.map(t => `
+      <div class="nft-trait-chip">
+        <div class="nft-trait-type">${t.layer}</div>
+        <div class="nft-trait-val">${t.trait.name}</div>
+      </div>
+    `).join('');
+  }
+
+  // Buttons — reupload for 1/1, re-generate for normal
+  if (isOne) {
+    document.getElementById('modalBtns').innerHTML = `
+      <button class="btn btn-ghost" onclick="closeNftModal()">Close</button>
+      <button class="btn btn-dark" onclick="reuploadOneOfOne()">📷 Re-upload Image</button>`;
+  } else {
+    document.getElementById('modalBtns').innerHTML = `
+      <button class="btn btn-ghost" onclick="closeNftModal()">Close</button>
+      <button class="btn btn-dark" onclick="reGenSingle()">🔄 Re-generate</button>`;
+  }
+}
+
+// ── 1/1 ART MODAL FEATURES ────────────────
+function renameNft() {
+  if (activeNftIdx === null) return;
+  const nft = generatedNFTs[activeNftIdx];
+  const current = nft.customName || `NFT #${nft.id} (1/1)`;
+  const newName = prompt('Rename this NFT:', current);
+  if (newName && newName.trim()) {
+    nft.customName = newName.trim();
+    log(`1/1 renamed to "${newName.trim()}"`, 'ok');
+    renderNftModal();
+  }
+}
+
+function editOneOfOneTrait(traitIdx) {
+  if (activeNftIdx === null) return;
+  const nft = generatedNFTs[activeNftIdx];
+  const t = nft.traits[traitIdx];
+  const newType = prompt('Trait type (e.g. Background, Outfit):', t.layer);
+  if (newType === null) return;
+  const newVal = prompt('Trait value:', t.trait.name);
+  if (newVal === null) return;
+  nft.traits[traitIdx] = { layer: newType.trim() || t.layer, trait: { name: newVal.trim() || t.trait.name } };
+  log(`1/1 trait updated: ${newType} = ${newVal}`, 'ok');
+  renderNftModal();
+}
+
+function addOneOfOneTrait() {
+  if (activeNftIdx === null) return;
+  const nft = generatedNFTs[activeNftIdx];
+  const type = prompt('Trait type (e.g. Background, Outfit):');
+  if (!type || !type.trim()) return;
+  const val = prompt('Trait value:');
+  if (!val || !val.trim()) return;
+  nft.traits.push({ layer: type.trim(), trait: { name: val.trim() } });
+  log(`1/1 trait added: ${type.trim()} = ${val.trim()}`, 'ok');
+  renderNftModal();
+}
+
+function reuploadOneOfOne() {
+  if (activeNftIdx === null) return;
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const isGif = file.type === 'image/gif' || /\.gif$/i.test(file.name);
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const src = ev.target.result;
+      if (isGif) {
+        // Keep GIF as-is
+        generatedNFTs[activeNftIdx].dataUrl = src;
+        generatedNFTs[activeNftIdx].isGif = true;
+        log(`1/1 image re-uploaded (GIF)`, 'ok');
+        renderNftModal(); renderGallery();
+      } else {
+        const img = new Image();
+        img.onload = () => {
+          const size = parseInt(document.getElementById('imgSize').value) || 512;
+          const c = document.createElement('canvas');
+          c.width = size; c.height = size;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, size, size);
+          generatedNFTs[activeNftIdx].dataUrl = c.toDataURL('image/png');
+          generatedNFTs[activeNftIdx].isGif = false;
+          log(`1/1 image re-uploaded`, 'ok');
+          renderNftModal(); renderGallery();
+        };
+        img.src = src;
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function navNft(dir) {
+  if (activeNftIdx === null) return;
+  let newIdx = activeNftIdx + dir;
+  if (newIdx < 0) newIdx = generatedNFTs.length - 1;
+  if (newIdx >= generatedNFTs.length) newIdx = 0;
+  activeNftIdx = newIdx;
+  renderNftModal();
+}
+
+function closeNftModal() {
+  document.getElementById('nftOverlay').style.display = 'none';
+  activeNftIdx = null;
+}
+
+async function reGenSingle() {
+  if (activeNftIdx === null) return;
+  const active = layers.filter(l => !l.hidden && l.traits.length);
+  if (!active.length) { log('No active layers!', 'warn'); return; }
+  const size = parseInt(document.getElementById('imgSize').value) || 512;
+  let newTraits = null;
+  for (let i = 0; i < 300; i++) {
+    const selected = active.map(l => ({ layer: l.name, trait: weightedRandom(l.traits) }));
+    if (hasConflict(selected)) continue;
+    const dna = selected.map(s => s.trait.name).join('|');
+    const others = generatedNFTs.filter((_, j) => j !== activeNftIdx);
+    if (others.some(n => n.dna === dna)) continue;
+    newTraits = selected; break;
+  }
+  if (!newTraits) { log('Failed to find a unique combination!', 'err'); return; }
+  const c = document.createElement('canvas');
+  paintCanvas(c, newTraits, size);
+  generatedNFTs[activeNftIdx] = { ...generatedNFTs[activeNftIdx], dna: newTraits.map(s => s.trait.name).join('|'), traits: newTraits, dataUrl: c.toDataURL('image/png') };
+  log(`NFT #${generatedNFTs[activeNftIdx].id} regenerated`, 'ok');  renderNftModal(); renderGallery();
+}
+
+// ── EXPORT ─────────────────────────────────
+async function exportCollection() {
+  if (!generatedNFTs.length) { log('Generate first!', 'warn'); return; }
+  log('Preparing ZIP...', 'info');
+  const zip = new JSZip();
+  const images = zip.folder('images');
+  const colName = document.getElementById('colName').value;
+  const colDesc = document.getElementById('colDesc').value;
+  const metadata = generatedNFTs.map(nft => ({
+    name: nft.customName || `${colName} #${nft.id}`,
+    description: colDesc,
+    image: `images/${nft.id}.${nft.isGif ? 'gif' : 'png'}`,
+    attributes: nft.traits.map(t => ({ trait_type: t.layer, value: t.trait.name })),
+    ...(nft.isOneOfOne ? { is_one_of_one: true } : {})
+  }));
+  zip.file('_metadata.json', JSON.stringify(metadata, null, 2));
+  metadata.forEach((m,i) => zip.file(`${i+1}.json`, JSON.stringify(m, null, 2)));
+  for (let i = 0; i < generatedNFTs.length; i++) {
+    const nft = generatedNFTs[i];
+    const ext = nft.isGif ? 'gif' : 'png';
+    images.file(`${nft.id}.${ext}`, nft.dataUrl.split(',')[1], { base64: true });
+    if (i % 50 === 0) { log(`Packing ${i}/${generatedNFTs.length}...`, 'info'); await tick(); }
+  }
+  const blob = await zip.generateAsync({ type: 'blob' });
+  saveAs(blob, `${colName.replace(/\s+/g,'_')}.zip`);
+  log('✓ ZIP downloaded!', 'ok');
+}
+
+// ── UTILS ──────────────────────────────────
+const tick = () => new Promise(r => setTimeout(r, 0));
+function log(msg, type = 'info') {
+  const a = document.getElementById('logArea');
+  const d = document.createElement('div');
+  d.className = type; d.textContent = '> ' + msg;
+  a.appendChild(d); a.scrollTop = a.scrollHeight;
+}
+
+// ── EVENT LISTENERS ────────────────────────
+document.getElementById('conflictModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeCModal(); });
+document.getElementById('nftOverlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeNftModal(); });
+document.getElementById('oneOfOneModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeOneOfOneModal(); });
+
+// Keyboard navigation in modal
+document.addEventListener('keydown', e => {
+  if (activeNftIdx === null) return;
+  if (e.key === 'ArrowLeft') navNft(-1);
+  if (e.key === 'ArrowRight') navNft(1);
+  if (e.key === 'Escape') closeNftModal();
+});
+
+// ── RESIZABLE PANELS ───────────────────────
+function initResize(handleId, targetEl, direction) {
+  const handle = document.getElementById(handleId);
+  let startX, startW;
+
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    startX = e.clientX;
+    startW = targetEl.offsetWidth;
+    handle.classList.add('active');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMove = e => {
+      const dx = direction === 'left' ? e.clientX - startX : startX - e.clientX;
+      const newW = Math.max(200, Math.min(600, startW + dx));
+      targetEl.style.width = newW + 'px';
+    };
+
+    const onUp = () => {
+      handle.classList.remove('active');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
+const leftCol = document.querySelector('.col');
+const rightCol = document.querySelector('.col-right');
+initResize('resizeLeft', leftCol, 'left');
+initResize('resizeRight', rightCol, 'right');
+
+// ── TUTORIAL ───────────────────────────────
+const tutSteps = [
+  { icon: '👋', title: 'Welcome to GenerateMyNFT', body: `<p>Create unique NFT collections of up to 10,000 items by combining layer-based traits.</p><p>This quick guide will show you how to get started.</p>` },
+  { icon: '📁', title: 'Upload Your Layers', body: `<p>Organize your artwork into folders. Each folder = one layer. Each image inside = one trait.</p><ul><li><strong>Background/</strong> → Cloud.png, Sky.png, Cosmos.png</li><li><strong>Body/</strong> → Human.png, Zombie.png, Ape.png</li><li><strong>Head/</strong> → Cap.png, Crown.png, Beanie.png</li></ul><p>Drag & drop the parent folder into the upload zone, or click to browse.</p><div class="tut-tip">💡 Layers are auto-sorted (Background first, Accessories last). Drag ⠿ to reorder manually.</div>` },
+  { icon: '🎛️', title: 'Customize Traits', body: `<ul><li><strong>Rarity</strong> — drag slider or double-click % to type. Others auto-adjust to 100%.</li><li><strong>Rename</strong> — double-click any layer or trait name.</li><li><strong>Add/Delete</strong> — + to add traits, ✕ to remove, 🗑 to delete layers.</li><li><strong>Reorder</strong> — drag ⠿ handle to change layer order.</li><li><strong>Hide</strong> — 👁️ to exclude a layer from generation.</li></ul>` },
+  { icon: '⚙️', title: 'Rules & 1/1 Art', body: `<p><strong>Rules</strong> control trait combinations:</p><ul><li><span style="color:var(--red)">Cannot Pair With</span> — Trait A must never appear with Trait B.</li><li><span style="color:var(--green)">Must Pair With</span> — If A appears, B must also appear.</li></ul><p><strong>1/1 Art</strong> — Upload unique pieces and assign a position # in your collection. Supports GIF! Double-click to rename, add custom traits, or re-upload.</p>` },
+  { icon: '🚀', title: 'Generate & Export', body: `<p>Set collection size (up to 10K) and image dimensions, then hit <strong>Generate</strong>.</p><ul><li>Click any NFT in the gallery to view details or re-generate.</li><li>Use ◀ ▶ arrows or keyboard to navigate.</li><li><strong>Export ZIP</strong> downloads images + metadata JSON (ERC-721 standard, compatible with OpenSea, Rarible, etc).</li></ul>` }
+];
+
+let tutIdx = 0;
+
+function openTutorial() {
+  tutIdx = 0;
+  renderTutStep();
+  document.getElementById('tutOverlay').style.display = 'flex';
+}
+
+function renderTutStep() {
+  const step = tutSteps[tutIdx];
+  document.getElementById('tutStepInd').textContent = `${tutIdx + 1} / ${tutSteps.length}`;
+  document.getElementById('tutContent').innerHTML = `<span class="tut-icon">${step.icon}</span><h2>${step.title}</h2>${step.body}`;
+  document.getElementById('tutPrev').style.visibility = tutIdx === 0 ? 'hidden' : 'visible';
+  document.getElementById('tutNext').textContent = tutIdx === tutSteps.length - 1 ? 'Get Started →' : 'Next →';
+}
+
+function tutNav(dir) {
+  tutIdx += dir;
+  if (tutIdx >= tutSteps.length) { closeTutorial(); return; }
+  if (tutIdx < 0) tutIdx = 0;
+  renderTutStep();
+}
+
+function closeTutorial() {
+  document.getElementById('tutOverlay').style.display = 'none';
+}
+
+document.getElementById('tutOverlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeTutorial(); });
+</script>
+</body>
+</html>

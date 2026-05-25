@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeployMyNFT</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.9.0/ethers.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--bg:#f5f4f0;--surface:#fff;--surface2:#f9f8f5;--border:#e5e3dc;--border2:#d4d0c8;
+      --accent:#1a1a1a;--red:#e63946;--green:#16a34a;--blue:#2563eb;--text:#1a1a1a;--muted:#888880;
+      --sh:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+      --sh-lg:0 4px 24px rgba(0,0,0,.1),0 1px 4px rgba(0,0,0,.06)}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    .hdr{background:var(--surface);padding:0 28px;height:56px;border-bottom:1px solid var(--border);
+      display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:200}
+    .hdr-logo{font-size:14px;font-weight:700;letter-spacing:-.3px;display:flex;align-items:center;gap:10px}
+    .hdr-logo .dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block}
+    .badge{background:var(--green);color:#fff;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700}
+    .main{max-width:1000px;margin:0 auto;padding:28px 20px;display:grid;grid-template-columns:1fr 360px;gap:24px}
+    .panel{background:var(--surface);border-radius:14px;padding:22px;box-shadow:var(--sh);margin-bottom:16px}
+    .panel h2{font-size:14px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+    .btn{padding:10px 20px;border:none;border-radius:8px;font-weight:600;cursor:pointer;
+      transition:all .18s;font-size:12px;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:6px;width:100%;justify-content:center}
+    .btn-dark{background:var(--accent);color:#fff}
+    .btn-dark:hover:not(:disabled){background:#333;transform:translateY(-1px);box-shadow:var(--sh-lg)}
+    .btn-dark:disabled{opacity:.35;cursor:not-allowed}
+    .btn-green{background:var(--green);color:#fff}
+    .btn-green:hover:not(:disabled){background:#15803d;transform:translateY(-1px)}
+    .btn-green:disabled{opacity:.35;cursor:not-allowed}
+    .btn-ghost{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+    .btn-ghost:hover{border-color:var(--border2);background:var(--surface2)}
+    .btn-sm{padding:6px 12px;font-size:11px}
+    .inp-grp{margin-bottom:12px}
+    .inp-grp label{display:block;margin-bottom:4px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+    .inp-grp input,.inp-grp select,.inp-grp textarea{width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);
+      border-radius:7px;font-size:13px;font-family:'DM Sans',sans-serif;transition:border-color .2s}
+    .inp-grp input:focus,.inp-grp select:focus,.inp-grp textarea:focus{outline:none;border-color:var(--accent)}
+    .inp-grp textarea{resize:vertical;min-height:60px;font-size:11px;font-family:'DM Mono',monospace}
+    .inp-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-logo">DeployMyNFT <span class="dot"></span><span class="badge">DEPLOY</span></div>
+  <a href="index.html" style="font-size:12px;color:var(--muted);text-decoration:none">← Back to Generator</a>
+</div>
+  <style>
+    .divider{height:1px;background:var(--border);margin:16px 0}
+    .status{margin-top:8px;font-size:11px;font-family:'DM Mono',monospace;padding:8px 10px;border-radius:6px;display:none}
+    .status.show{display:block}
+    .status.ok{background:#f0fdf4;color:var(--green);border:1px solid #bbf7d0}
+    .status.err{background:#fef2f2;color:var(--red);border:1px solid #fecaca}
+    .status.info{background:#eff6ff;color:var(--blue);border:1px solid #bfdbfe}
+    .warn-box{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:11px;color:#92400e;line-height:1.6;margin-bottom:14px}
+    .wallet-pill{font-size:10px;background:var(--surface2);border:1px solid var(--border);padding:4px 10px;border-radius:100px;font-family:'DM Mono',monospace;color:var(--muted)}
+    .result-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:12px}
+    .result-box label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700;display:block;margin-bottom:3px}
+    .result-box a{font-size:11px;color:var(--blue);word-break:break-all;font-family:'DM Mono',monospace}
+    .spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-radius:50%;border-top-color:#fff;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .phase-card{border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:10px;background:var(--surface2)}
+    .phase-card .phase-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+    .phase-card .phase-title{font-size:12px;font-weight:700}
+    .phase-del{color:var(--muted);cursor:pointer;font-size:12px;padding:2px 6px;border-radius:4px}
+    .phase-del:hover{color:var(--red);background:#fee}
+    .add-phase-btn{width:100%;padding:8px;background:transparent;border:1px dashed var(--border2);
+      color:var(--muted);border-radius:7px;cursor:pointer;font-size:11px;font-weight:600;
+      font-family:'DM Sans',sans-serif;transition:all .2s}
+    .add-phase-btn:hover{border-color:var(--green);color:var(--green);background:#f0fdf4}
+    /* PREVIEW MOCKUP */
+    .preview-mock{background:#111;border-radius:12px;padding:24px;color:#fff;text-align:center}
+    .preview-mock h3{font-size:16px;font-weight:700;margin-bottom:4px}
+    .preview-mock .pm-sub{font-size:11px;color:#888;margin-bottom:16px}
+    .preview-mock .pm-img{width:120px;height:120px;border-radius:10px;background:#222;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:32px}
+    .preview-mock .pm-price{font-size:20px;font-weight:700;margin-bottom:4px}
+    .preview-mock .pm-supply{font-size:11px;color:#888;margin-bottom:16px}
+    .preview-mock .pm-btn{background:#fff;color:#111;border:none;padding:12px 32px;border-radius:8px;font-weight:700;font-size:13px;cursor:default}
+    .preview-mock .pm-phases{margin-top:16px;text-align:left}
+    .preview-mock .pm-phase{background:#1a1a1a;border:1px solid #333;border-radius:7px;padding:8px 12px;margin-bottom:6px;font-size:11px;display:flex;justify-content:space-between}
+    .preview-mock .pm-phase .name{font-weight:600}
+    .preview-mock .pm-phase .info{color:#888}
+    .footer{text-align:center;padding:20px;font-size:11px;color:var(--muted)}
+    @media(max-width:768px){.main{grid-template-columns:1fr}.inp-row{grid-template-columns:1fr}}
+  </style>
+
+<div class="main">
+  <!-- LEFT: Config -->
+  <div>
+    <div class="panel">
+      <h2>📝 Contract Details</h2>
+      <div class="inp-grp"><label>Collection Name</label><input id="dName" value="My NFT Collection"></div>
+      <div class="inp-grp"><label>Token Symbol</label><input id="dSymbol" value="MNFT" placeholder="e.g. BAYC, MNFT"></div>
+      <div class="inp-row">
+        <div class="inp-grp"><label>Max Supply</label><input type="number" id="dMaxSupply" value="10000"></div>
+        <div class="inp-grp"><label>Public Mint Price (ETH)</label><input id="dMintPrice" value="0" placeholder="0 = free"></div>
+      </div>
+      <div class="inp-row">
+        <div class="inp-grp"><label>Public Sale Start</label><input type="datetime-local" id="dStart"></div>
+        <div class="inp-grp"><label>Public Sale End</label><input type="datetime-local" id="dEnd"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>📋 Whitelist Phases <span style="font-size:10px;color:var(--muted);font-weight:400">(max 10)</span></h2>
+      <div id="phasesContainer"></div>
+      <button class="add-phase-btn" onclick="addPhase()">+ Add WL Phase</button>
+    </div>
+  </div>
+
+  <!-- RIGHT: Wallet & Deploy -->
+  <div>
+    <div class="panel">
+      <h2>🦊 Connect Wallet</h2>
+      <div class="inp-grp"><label>Network</label>
+        <select id="chainSelect">
+          <option value="11155111" selected>Sepolia (Testnet — Free)</option>
+          <option value="8453">Base (Cheap)</option>
+          <option value="137">Polygon (Cheap)</option>
+          <option value="1">Ethereum Mainnet</option>
+        </select>
+      </div>
+      <button class="btn btn-dark" id="connectBtn" onclick="connectWallet()">🦊 Connect MetaMask</button>
+      <div id="walletInfo" style="margin-top:8px"></div>
+    </div>
+
+    <div class="panel">
+      <h2>🚀 Deploy</h2>
+      <div class="warn-box">⚠️ Sepolia is free (get test ETH from <a href="https://sepoliafaucet.com" target="_blank" style="color:#92400e;font-weight:600">faucet</a>). Mainnet costs real ETH.</div>
+      <button class="btn btn-green" id="deployBtn" onclick="deployContract()" disabled>🚀 Deploy to Blockchain</button>
+      <div class="status" id="deployStatus"></div>
+      <div class="result-box" id="resultBox" style="display:none">
+        <label>Contract Address</label>
+        <a id="contractLink" href="#" target="_blank"></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">Built with DeployMyNFT • Smart contract is ERC-721 with WL phases & public mint</div>
+
+<script>
+// ── STATE ──────────────────────────────────
+let provider = null;
+let signer = null;
+let walletAddress = null;
+let phases = [];
+
+const chains = {
+  '1': { name: 'Ethereum', explorer: 'https://etherscan.io' },
+  '8453': { name: 'Base', explorer: 'https://basescan.org' },
+  '137': { name: 'Polygon', explorer: 'https://polygonscan.com' },
+  '11155111': { name: 'Sepolia', explorer: 'https://sepolia.etherscan.io' }
+};
+
+// ── WL PHASES ──────────────────────────────
+function addPhase() {
+  if (phases.length >= 10) { alert('Maximum 10 phases'); return; }
+  phases.push({ name: `WL Phase ${phases.length + 1}`, start: '', end: '', maxMint: 2, price: '0', wallets: '' });
+  renderPhases();
+}
+
+function removePhase(i) {
+  phases.splice(i, 1);
+  renderPhases();
+}
+
+function updatePhase(i, field, value) {
+  phases[i][field] = value;
+}
+
+function renderPhases() {
+  const c = document.getElementById('phasesContainer');
+  if (!phases.length) { c.innerHTML = '<p style="font-size:11px;color:var(--muted)">No WL phases yet. Public mint only.</p>'; return; }
+  c.innerHTML = phases.map((p, i) => `
+    <div class="phase-card">
+      <div class="phase-hdr">
+        <span class="phase-title">Phase ${i + 1}</span>
+        <span class="phase-del" onclick="removePhase(${i})">✕ Remove</span>
+      </div>
+      <div class="inp-grp"><label>Phase Name</label><input value="${p.name}" onchange="updatePhase(${i},'name',this.value)"></div>
+      <div class="inp-row">
+        <div class="inp-grp"><label>Start Time</label><input type="datetime-local" value="${p.start}" onchange="updatePhase(${i},'start',this.value)"></div>
+        <div class="inp-grp"><label>End Time</label><input type="datetime-local" value="${p.end}" onchange="updatePhase(${i},'end',this.value)"></div>
+      </div>
+      <div class="inp-row">
+        <div class="inp-grp"><label>Max Mint / Wallet</label><input type="number" value="${p.maxMint}" min="1" onchange="updatePhase(${i},'maxMint',this.value)"></div>
+        <div class="inp-grp"><label>Price (ETH)</label><input value="${p.price}" onchange="updatePhase(${i},'price',this.value)"></div>
+      </div>
+      <div class="inp-grp"><label>Wallet Addresses (one per line)</label>
+        <textarea placeholder="0x1234...&#10;0x5678...&#10;0xabcd..." onchange="updatePhase(${i},'wallets',this.value)">${p.wallets}</textarea>
+      </div>
+    </div>
+  `).join('');
+}
+renderPhases();
+
+// Auto-update on input change
+document.querySelectorAll('#dName,#dSymbol,#dMintPrice,#dMaxSupply').forEach(el => {
+  el.addEventListener('input', () => {});
+});
+</script>
+
+<script>
+// ── CONNECT WALLET ─────────────────────────
+async function connectWallet() {
+  if (!window.ethereum) { alert('MetaMask not found! Install MetaMask extension.'); return; }
+  const btn = document.getElementById('connectBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Connecting...';
+
+  try {
+    provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send('eth_requestAccounts', []);
+    signer = await provider.getSigner();
+    walletAddress = await signer.getAddress();
+
+    const chainId = document.getElementById('chainSelect').value;
+    try {
+      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x' + parseInt(chainId).toString(16) }] });
+    } catch(e) { /* user may reject */ }
+
+    btn.innerHTML = '✓ Connected';
+    document.getElementById('walletInfo').innerHTML = `<span class="wallet-pill">${walletAddress.slice(0,6)}...${walletAddress.slice(-4)}</span>`;
+    document.getElementById('deployBtn').disabled = false;
+  } catch(e) {
+    btn.disabled = false; btn.innerHTML = '🦊 Connect MetaMask';
+    alert('Failed: ' + e.message);
+  }
+}
+
+// ── DEPLOY ─────────────────────────────────
+const CONTRACT_ABI = [
+  "constructor(string memory name_, string memory symbol_, string memory baseURI_, uint256 maxSupply_, uint256 mintPrice_)",
+  "function mint(uint256 quantity) public payable",
+  "function totalSupply() public view returns (uint256)",
+  "function tokenURI(uint256 tokenId) public view returns (string memory)",
+  "function setBaseURI(string memory baseURI_) public",
+  "function withdraw() public",
+  "function owner() public view returns (address)"
+];
+
+const CONTRACT_BYTECODE = "0x60806040523480156200001157600080fd5b506040516200203038038062002030833981810160405281019062000037919062000298565b8484816000908162000049919062000582565b5080600190816200005b919062000582565b505082600690816200006e919062000582565b508160078190555080600881905550336005806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555050505050506200066b565b6000604051905090565b600080fd5b600080fd5b600080fd5b600080fd5b6000601f19601f8301169050919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b6200013982620000ee565b810181811067ffffffffffffffff821117156200015b576200015a620000ff565b5b80604052505050565b600062000170620000cd565b90506200017e82826200012e565b919050565b600067ffffffffffffffff821115620001a157620001a0620000ff565b5b620001ac82620000ee565b9050602081019050919050565b60005b83811015620001d9578082015181840152602081019050620001bc565b60008484015250505050565b6000620001fc620001f68462000183565b62000164565b9050828152602081018484840111156200021b576200021a620000e9565b5b62000228848285620001b9565b509392505050565b600082601f830112620002485762000247620000e4565b5b81516200025a848260208601620001e5565b91505092915050565b6000819050919050565b620002788162000263565b81146200028457600080fd5b50565b600081519050620002988162000269565b92915050565b600080600080600060a08688031215620002bd57620002bc620000da565b5b600086015167ffffffffffffffff811115620002de57620002dd620000df565b5b620002ec8882890162000230565b955050602086015167ffffffffffffffff81111562000310576200030f620000df565b5b6200031e8882890162000230565b945050604086015167ffffffffffffffff811115620003425762000341620000df565b5b620003508882890162000230565b9350506060620003638882890162000287565b9250506080620003768882890162000287565b9150509295509295909350565b600081519050919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052602260045260246000fd5b60006002820490506001821680620003d657607f821691505b602082108103620003ec57620003eb6200038e565b5b50919050565b60008190508160005260206000209050919050565b60006020601f8301049050919050565b600082821b905092915050565b600060088302620004557fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8262000416565b62000461868362000416565b95508019841693508086168417925050509392505050565b6000819050919050565b6000620004a06200049a620004948462000263565b62000479565b62000263565b9050919050565b6000819050919050565b620004bc8362000483565b620004d4620004cb82620004a7565b84845462000423565b825550505050565b600090565b620004eb620004dc565b620004f8818484620004b1565b505050565b5b8181101562000520576200051460008262000e1565b600181019050620004fe565b5050565b601f82111562000569576200053981620003f2565b620005448462000407565b8101602085101562000554578190505b6200056c620005638562000407565b830182620004fd565b50505b505050565b600082821c905092915050565b600062000594600019846008026200574565b1980831691505092915050565b6000620005af83836200581565b9150826002028217905092915050565b620005ca8262000383565b67ffffffffffffffff811115620005e657620005e5620000ff565b5b620005f28254620003bc565b620005ff82828562000524565b600060209050601f83116001811462000637576000841562000622578287015190505b6200062e8582620005a1565b865550620006a0565b601f1984166200064786620003f2565b60005b8281101562000671578489015182556001820191506020850194506020810190506200064a565b868310156200069157848901516200068d601f89168262000581565b8355505b6001600288020188555050505b505050505050565b6119b580620006b56000396000f3fe";
+
+async function deployContract() {
+  if (!signer) { alert('Connect wallet first!'); return; }
+  const name = document.getElementById('dName').value.trim() || 'My NFT';
+  const symbol = document.getElementById('dSymbol').value.trim() || 'MNFT';
+  const maxSupply = parseInt(document.getElementById('dMaxSupply').value) || 10000;
+  const mintPrice = document.getElementById('dMintPrice').value.trim() || '0';
+  const status = document.getElementById('deployStatus');
+  const baseURI = 'ipfs://PLACEHOLDER/';
+
+  const btn = document.getElementById('deployBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Deploying...';
+  showStatus(status, 'Confirm transaction in MetaMask...', 'info');
+
+  try {
+    const mintPriceWei = ethers.parseEther(mintPrice);
+    const factory = new ethers.ContractFactory(CONTRACT_ABI, CONTRACT_BYTECODE, signer);
+    const contract = await factory.deploy(name, symbol, baseURI, maxSupply, mintPriceWei);
+
+    showStatus(status, 'Transaction sent! Waiting for confirmation...', 'info');
+    await contract.waitForDeployment();
+
+    const address = await contract.getAddress();
+    const chainId = document.getElementById('chainSelect').value;
+    const explorer = chains[chainId]?.explorer || 'https://etherscan.io';
+
+    showStatus(status, '✓ Contract deployed successfully!', 'ok');
+    btn.innerHTML = '✓ Deployed';
+
+    const resultBox = document.getElementById('resultBox');
+    resultBox.style.display = 'block';
+    const link = document.getElementById('contractLink');
+    link.href = `${explorer}/address/${address}`;
+    link.textContent = address;
+
+  } catch(e) {
+    showStatus(status, `Failed: ${e.reason || e.message}`, 'err');
+    btn.disabled = false; btn.innerHTML = '🚀 Deploy to Blockchain';
+  }
+}
+
+function showStatus(el, msg, type) {
+  el.textContent = msg;
+  el.className = `status show ${type}`;
+}
+</script>
+</body>
+</html>
