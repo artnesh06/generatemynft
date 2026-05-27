@@ -7,7 +7,8 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📂</text></svg>">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&family=Inter:wght@100..900&display=swap" rel="stylesheet">
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     :root{
@@ -21,9 +22,15 @@
     body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
     .hdr{background:var(--surface);padding:0 28px;height:56px;border-bottom:1px solid var(--border);
       display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:200}
-    .hdr-logo{font-size:14px;font-weight:700;letter-spacing:-.3px;display:flex;align-items:center;gap:10px}
-    .hdr-logo .dot{width:6px;height:6px;border-radius:50%;background:var(--red);display:inline-block}
-    .badge{background:var(--red);color:#fff;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:.5px}
+    .hdr-logo{font-size:16px;font-weight:800;letter-spacing:-.4px;display:flex;align-items:center;gap:10px;
+      text-shadow:1px 1px 0 rgba(0,0,0,.06)}
+    .shuffle-text{cursor:pointer;display:inline-flex;perspective:600px}
+    .shuffle-text .flip-char{display:inline-block;position:relative;transform-style:preserve-3d;transition:transform .4s cubic-bezier(.2,.8,.2,1.2)}
+    .shuffle-text .flip-char .front,.shuffle-text .flip-char .back{display:inline-block;backface-visibility:hidden}
+    .shuffle-text .flip-char .back{position:absolute;left:0;top:0;transform:rotateX(180deg);color:var(--red)}
+    .shuffle-text:hover .flip-char{transform:rotateX(-180deg)}
+    .badge{background:linear-gradient(135deg,var(--red),#ff6b6b);color:#fff;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:800;letter-spacing:.5px;
+      box-shadow:0 2px 8px rgba(230,57,70,.3),inset 0 1px 0 rgba(255,255,255,.2);transform:perspective(200px) rotateX(5deg)}
     .hdr-btns{display:flex;gap:8px;align-items:center}
     .btn{padding:8px 18px;border:none;border-radius:8px;font-weight:600;cursor:pointer;
       transition:all .18s;font-size:12px;font-family:'DM Sans',sans-serif;
@@ -73,7 +80,7 @@
     .hidden-badge{font-size:9px;background:#fff3cd;color:#806000;border:1px solid #f0c040;padding:1px 5px;border-radius:4px;font-weight:700}
     .layer-act{display:flex;gap:4px;align-items:center}
     .icon-btn{background:none;border:1px solid var(--border);border-radius:5px;padding:3px 7px;
-      cursor:pointer;font-size:11px;color:var(--muted);transition:all .15s;line-height:1.4;display:flex;align-items:center;justify-content:center;gap:3px;font-family:'DM Sans',sans-serif;font-weight:600;min-width:28px;min-height:28px}
+      cursor:pointer;font-size:11px;color:var(--muted);transition:all .15s;line-height:1.4;display:flex;align-items:center;justify-content:center;gap:3px;font-family:'DM Sans',sans-serif;font-weight:600;min-width:28px;min-height:28px;flex-shrink:0}
     .icon-btn:hover{border-color:var(--border2);color:var(--text);background:var(--surface)}
     .icon-btn.active-hide{background:#fff3cd;border-color:#f0c040;color:#806000}
     .icon-btn.del:hover{border-color:var(--red);color:var(--red);background:#fef2f2}
@@ -132,9 +139,12 @@
     .preview-btns{display:flex;gap:8px;margin-top:12px}
     .preview-btns .btn{flex:1;justify-content:center}
     .progress-wrap{width:100%;max-width:420px;display:none}
-    .prog-bg{width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
-    .prog-fill{height:100%;background:var(--accent);width:0%;transition:width .3s;border-radius:2px}
-    .prog-txt{text-align:center;font-size:11px;color:var(--muted);margin-top:7px;font-family:'DM Mono',monospace}
+    .prog-bg{width:100%;height:10px;background:var(--border);border-radius:8px;overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,.1)}
+    .prog-fill{height:100%;background:linear-gradient(90deg,var(--red),#ff6b6b,#ffd700,var(--green));background-size:300% 100%;
+      width:0%;border-radius:8px;transition:width .3s ease;animation:progShimmer 10s linear infinite}
+    @keyframes progShimmer{0%{background-position:0% 0}100%{background-position:300% 0}}
+    .prog-txt{text-align:center;width:100%;font-size:13px;color:var(--text);margin-top:10px;font-family:'DM Mono',monospace;font-weight:600}
+    .prog-txt .nf-root{display:flex;justify-content:center;width:100%}
     .gallery-wrap{width:100%;max-width:420px}
     .gallery-title{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px}
     .gallery-title::after{content:'';flex:1;height:1px;background:var(--border)}
@@ -155,12 +165,12 @@
     .close-btn:hover{background:var(--surface2);color:var(--text)}
     .nft-modal-img-wrap{position:relative;margin-bottom:14px}
     .nft-modal-img{width:100%;aspect-ratio:1;border-radius:10px;object-fit:cover;border:1px solid var(--border);image-rendering:pixelated;display:block}
-    .nav-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.9);border:1px solid var(--border);
-      width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-      cursor:pointer;font-size:16px;transition:all .15s;box-shadow:var(--sh)}
-    .nav-arrow:hover{background:#fff;box-shadow:var(--sh-lg);transform:translateY(-50%) scale(1.05)}
-    .nav-arrow.left{left:-12px}
-    .nav-arrow.right{right:-12px}
+    .nav-arrow{position:fixed;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.9);border:1px solid var(--border);
+      width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+      cursor:pointer;font-size:16px;transition:all .15s;box-shadow:var(--sh);z-index:501}
+    .nav-arrow:hover{background:#fff;box-shadow:var(--sh-lg);transform:translateY(-50%) scale(1.1)}
+    .nav-arrow.left{left:calc(50% - 260px)}
+    .nav-arrow.right{right:calc(50% - 260px)}
     .nav-arrow:disabled{opacity:.3;cursor:not-allowed}
     .nft-traits-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:16px}
     .nft-trait-chip{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 10px}
@@ -172,6 +182,16 @@
     .stat-card{background:var(--surface2);padding:12px 14px;border-radius:9px;border:1px solid var(--border)}
     .stat-val{font-size:22px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px}
     .stat-lbl{font-size:9px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:1px;font-weight:700}
+    .nf-root{display:inline-flex;font-variant-numeric:tabular-nums;line-height:1}
+    .stat-val .nf-root{justify-content:flex-start}
+    .prog-txt .nf-root{display:flex;justify-content:center;width:100%}
+    .nf-slot{display:inline-block;overflow:hidden;height:1.2em;position:relative;vertical-align:top}
+    .nf-char{display:block;height:1.2em;line-height:1.2}
+    .nf-roll{display:flex;flex-direction:column;height:2.4em}
+    .nf-roll.nf-up{animation:nfRollUp 500ms cubic-bezier(0,0,0.2,1) forwards}
+    .nf-roll.nf-down{transform:translateY(-50%);animation:nfRollDown 500ms cubic-bezier(0,0,0.2,1) forwards}
+    @keyframes nfRollUp{from{transform:translateY(0)}to{transform:translateY(-50%)}}
+    @keyframes nfRollDown{from{transform:translateY(-50%)}to{transform:translateY(0)}}
     .inp-grp{margin-bottom:11px}
     .inp-grp label{display:block;margin-bottom:4px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700}
     .inp-grp input,.inp-grp select{width:100%;padding:8px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;transition:border-color .2s}
@@ -213,9 +233,19 @@
     .tut-step-ind{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);background:var(--surface2);padding:4px 12px;border-radius:100px;border:1px solid var(--border)}
     .tut-footer{display:flex;justify-content:space-between;margin-top:20px}
     .help-btn{width:32px;height:32px;border-radius:50%;background:var(--surface);border:1px solid var(--border);
-      display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;font-weight:700;
+      display:flex;align-items:center;justify-content:center;cursor:pointer;
       color:var(--muted);transition:all .15s}
-    .help-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--surface2)}
+    .help-btn:hover{border-color:var(--muted);color:var(--muted);background:var(--surface2)}
+    .help-btn svg{width:18px;height:18px}
+    .help-btn .info-circle{stroke-dasharray:57;stroke-dashoffset:0;transition:stroke-dashoffset .4s ease}
+    .help-btn .info-dot{stroke-dasharray:2;stroke-dashoffset:0;transition:stroke-dashoffset .3s ease}
+    .help-btn .info-line{stroke-dasharray:10;stroke-dashoffset:0;transition:stroke-dashoffset .4s ease .1s}
+    .help-btn:hover .info-circle{stroke-dashoffset:57;animation:drawCircle .5s ease forwards}
+    .help-btn:hover .info-dot{stroke-dashoffset:2;animation:drawDot .3s ease .2s forwards}
+    .help-btn:hover .info-line{stroke-dashoffset:10;animation:drawLine .4s ease .3s forwards}
+    @keyframes drawCircle{from{stroke-dashoffset:57}to{stroke-dashoffset:0}}
+    @keyframes drawDot{from{stroke-dashoffset:2}to{stroke-dashoffset:0}}
+    @keyframes drawLine{from{stroke-dashoffset:10}to{stroke-dashoffset:0}}
 
     /* RESPONSIVE MOBILE */
     @media (max-width: 900px) {
@@ -231,10 +261,8 @@
       .preview-card{max-width:100%}
       .gallery-grid{grid-template-columns:repeat(3,1fr)}
       .stats-grid{grid-template-columns:1fr 1fr}
-      .nft-modal{width:95%;max-width:none;padding:16px}
-      .nav-arrow{width:30px;height:30px;font-size:13px}
-      .nav-arrow.left{left:-6px}
-      .nav-arrow.right{right:-6px}
+      .nft-modal{width:85%;max-width:none;padding:16px}
+      .nav-arrow{width:34px;height:34px;font-size:13px}
       .cm-box{width:95%;padding:20px}
     }
 
@@ -259,12 +287,17 @@
 <body>
 
 <div class="hdr">
-  <div class="hdr-logo">GenerateMyNFT <span class="dot"></span><span class="badge">10K</span></div>
+  <div class="hdr-logo"><span id="shuffleText" class="shuffle-text"><span class="flip-char" style="transition-delay:0s"><span class="front">G</span><span class="back">G</span></span><span class="flip-char" style="transition-delay:.03s"><span class="front">e</span><span class="back">e</span></span><span class="flip-char" style="transition-delay:.06s"><span class="front">n</span><span class="back">n</span></span><span class="flip-char" style="transition-delay:.09s"><span class="front">e</span><span class="back">e</span></span><span class="flip-char" style="transition-delay:.12s"><span class="front">r</span><span class="back">r</span></span><span class="flip-char" style="transition-delay:.15s"><span class="front">a</span><span class="back">a</span></span><span class="flip-char" style="transition-delay:.18s"><span class="front">t</span><span class="back">t</span></span><span class="flip-char" style="transition-delay:.21s"><span class="front">e</span><span class="back">e</span></span><span class="flip-char" style="transition-delay:.24s"><span class="front">M</span><span class="back">M</span></span><span class="flip-char" style="transition-delay:.27s"><span class="front">y</span><span class="back">y</span></span><span class="flip-char" style="transition-delay:.30s"><span class="front">N</span><span class="back">N</span></span><span class="flip-char" style="transition-delay:.33s"><span class="front">F</span><span class="back">F</span></span><span class="flip-char" style="transition-delay:.36s"><span class="front">T</span><span class="back">T</span></span></span> <span class="badge">10K</span></div>
   <div class="hdr-btns">
-    <button class="help-btn" onclick="openTutorial()" title="How to use">?</button>
-    <button class="btn btn-ghost" onclick="randomizePreview()">🎲 Random</button>
-    <button class="btn btn-dark" id="genBtn" onclick="generateCollection()">🚀 Generate</button>
-    <button class="btn btn-red" id="exportBtn" onclick="exportCollection()" disabled>📦 Export ZIP</button>
+    <button class="help-btn" onclick="openTutorial()" title="How to use">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" class="info-circle"/>
+        <path d="M12 9h.01" class="info-dot"/>
+        <path d="M11 12h1v4h1" class="info-line"/>
+      </svg>
+    </button>
+    <button class="btn btn-dark" id="genBtn" onclick="generateCollection()">Generate</button>
+    <button class="btn btn-red" id="exportBtn" onclick="exportCollection()" disabled>Export ZIP</button>
   </div>
 </div>
 
@@ -307,10 +340,11 @@
         </div>
         <div style="position:relative">
           <canvas id="previewCanvas" width="512" height="512"></canvas>
+          <canvas id="ditherCanvas" width="512" height="512" style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:9px;pointer-events:none"></canvas>
         </div>
         <div class="preview-btns">
-          <button class="btn btn-ghost btn-sm" onclick="downloadPreview()">💾 Save PNG</button>
-          <button class="btn btn-dark" onclick="randomizePreview()">🎲 Randomize</button>
+          <button class="btn btn-ghost btn-sm" onclick="downloadPreview()">Save PNG</button>
+          <button class="btn btn-dark" onclick="randomizePreview()">Randomize</button>
         </div>
       </div>
       <div class="progress-wrap" id="progressWrap">
@@ -351,15 +385,14 @@
 
 <!-- NFT Detail Modal -->
 <div class="nft-overlay" id="nftOverlay">
+  <button class="nav-arrow left" onclick="navNft(-1)">◀</button>
   <div class="nft-modal">
     <div class="nft-modal-top">
       <span class="nft-modal-title" id="modalTitle">NFT #1</span>
       <button class="close-btn" onclick="closeNftModal()">✕</button>
     </div>
     <div class="nft-modal-img-wrap">
-      <button class="nav-arrow left" onclick="navNft(-1)">◀</button>
       <img id="modalImg" class="nft-modal-img" src="" alt="">
-      <button class="nav-arrow right" onclick="navNft(1)">▶</button>
     </div>
     <div class="nft-traits-grid" id="modalTraits"></div>
     <div class="nft-modal-btns" id="modalBtns">
@@ -367,6 +400,7 @@
       <button class="btn btn-dark" id="modalActionBtn" onclick="reGenSingle()">🔄 Re-generate</button>
     </div>
   </div>
+  <button class="nav-arrow right" onclick="navNft(1)">▶</button>
 </div>
 
 <!-- Conflict/Rule Modal -->
@@ -549,7 +583,7 @@ function finalizeLayers(layerMap) {
     const traits = layerMap[name];
     const perTrait = Math.max(1, Math.floor(100 / traits.length));
     const remainder = 100 - (perTrait * traits.length);
-    return { name, color: colors[idx % colors.length], traits: traits.map((t, i) => ({ ...t, rarity: perTrait + (i === 0 ? remainder : 0) })), hidden: false, minimized: false };
+    return { name, color: colors[idx % colors.length], traits: traits.map((t, i) => ({ ...t, rarity: perTrait + (i === 0 ? remainder : 0) })), hidden: false, minimized: idx > 0 };
   });
   log(`✓ ${layers.length} layers, ${layers.reduce((s,l)=>s+l.traits.length,0)} traits loaded!`, 'ok');
   log(`Layer order: ${layers.map(l=>l.name).join(' → ')}`, 'info');
@@ -576,13 +610,13 @@ function renderLayers() {
         <span class="drag-handle" title="Drag to reorder" data-idx="${li}">⠿</span>
         <span class="layer-dot" style="background:${layer.color}"></span>
         <span class="layer-name-txt" ondblclick="renameLayer(${li})">${layer.name}</span>
-        ${layer.hidden ? '<span class="hidden-badge">Hidden</span>' : ''}
+        ${layer.hidden ? '' : ''}
         <span class="layer-count">${layer.traits.length}</span>
         <div class="layer-act">
           <button class="icon-btn" onclick="addTraitToLayer(${li})" title="Add trait">+</button>
           <button class="icon-btn" onclick="toggleMinimize(${li})" title="${layer.minimized?'Expand':'Minimize'}"><span style="display:flex;align-items:center;justify-content:center;transition:transform .2s;transform:rotate(${layer.minimized ? '-90deg' : '0deg'})">▾</span></button>
-          <button class="icon-btn ${layer.hidden ? 'active-hide' : ''}" onclick="toggleHide(${li})" title="${layer.hidden?'Show':'Hide'}">${layer.hidden ? '🙈' : '👁️'}</button>
-          <button class="icon-btn del" onclick="deleteLayer(${li})" title="Delete layer">🗑</button>
+          <button class="icon-btn ${layer.hidden ? 'active-hide' : ''}" onclick="event.stopPropagation();toggleHide(${li})" title="${layer.hidden?'Show':'Hide'}"><span style="display:inline-block;width:16px;text-align:center">${layer.hidden ? '🙈' : '👁️'}</span></button>
+          <button class="icon-btn del" onclick="event.stopPropagation();deleteLayer(${li})" title="Delete layer">🗑</button>
         </div>
       </div>
       <div class="layer-body" id="lb-${li}" style="max-height:${layer.minimized ? '0' : '2000px'}">
@@ -669,7 +703,6 @@ function deleteTrait(li, ti) {
 }
 
 function deleteLayer(li) {
-  if (!confirm(`Delete layer "${layers[li].name}" and all its traits?`)) return;
   const name = layers[li].name;
   layers.splice(li, 1);
   log(`Layer "${name}" deleted`, 'warn');
@@ -745,7 +778,7 @@ function updateRarity(li, ti, val) {
     const slider = document.querySelector(`#lw-${li} .trait-row:nth-child(${i+1}) .rarity-slider`);
     const label = document.getElementById(`r-${li}-${i}`);
     if (slider) slider.value = t.rarity;
-    if (label) label.textContent = t.rarity + '%';
+    if (label) numberFlow(label, t.rarity + '%');
   });
 }
 
@@ -821,13 +854,17 @@ initDragListeners();
 // ── STATS ──────────────────────────────────
 function updateStats() {
   const active = layers.filter(l => !l.hidden);
-  const total = layers.reduce((s,l) => s+l.traits.length, 0);
+  const totalTraits = active.reduce((s,l) => s+l.traits.length, 0);
   let combos = active.length ? 1 : 0;
   active.forEach(l => { if (l.traits.length) combos *= l.traits.length; });
-  document.getElementById('sLayers').textContent = layers.length ? `${active.length}/${layers.length}` : '0';
-  document.getElementById('sTraits').textContent = total;
-  document.getElementById('sCombos').textContent = combos > 999999 ? '∞' : combos.toLocaleString();
-  document.getElementById('sGenerated').textContent = generatedNFTs.length;
+  let combosStr;
+  if (combos >= 1000) combosStr = Math.floor(combos / 1000).toLocaleString();
+  else combosStr = String(combos);
+
+  numberFlow(document.getElementById('sLayers'), layers.length ? `${active.length}/${layers.length}` : '0');
+  numberFlow(document.getElementById('sTraits'), String(totalTraits));
+  numberFlow(document.getElementById('sCombos'), combosStr);
+  numberFlow(document.getElementById('sGenerated'), String(generatedNFTs.length));
 }
 
 // ── PREVIEW ────────────────────────────────
@@ -854,6 +891,7 @@ function buildRandomTraits() {
 
 function randomizePreview() {
   if (!layers.length || !layers.some(l => l.traits.length)) { return; }
+  if (window.ditherControl) window.ditherControl.stop();
   const traits = buildRandomTraits();
   const size = parseInt(document.getElementById('imgSize').value) || 512;
   paintCanvas(document.getElementById('previewCanvas'), traits, size);
@@ -1030,7 +1068,7 @@ async function generateCollection() {
       }
       generatedNFTs.push({ id: currentPos, dna: `1/1_${oneOfOne.name}`, traits: [{layer:'1/1 Art', trait:{name:oneOfOne.name}}], dataUrl, isOneOfOne: true, isGif: oneOfOne.isGif || false });
       pf.style.width = (generatedNFTs.length / count * 100) + '%';
-      pt.textContent = `${generatedNFTs.length}/${count}`;
+      numberFlow(pt, `${generatedNFTs.length}/${count}`);
       continue;
     }
 
@@ -1045,35 +1083,71 @@ async function generateCollection() {
     generatedNFTs.push({ id: currentPos, dna, traits: selected, dataUrl: c.toDataURL('image/png'), isOneOfOne: false, isGif: false });
 
     pf.style.width = (generatedNFTs.length / count * 100) + '%';
-    pt.textContent = `${generatedNFTs.length}/${count}`;
+    numberFlow(pt, `${generatedNFTs.length}/${count}`);
     if (generatedNFTs.length % 20 === 0) await tick();
   }
 
   isGenerating = false;
-  genBtn.disabled = false; genBtn.innerHTML = '🚀 Generate';
+  genBtn.disabled = false; genBtn.innerHTML = 'Generate';
   document.getElementById('exportBtn').disabled = false;
   if (generatedNFTs.length < count) log(`Only ${generatedNFTs.length} unique NFTs out of ${count}`, 'warn');
   else log(`✓ ${generatedNFTs.length} NFTs generated successfully!`, 'ok');
   updateStats();
-  pt.textContent = `Done! ${generatedNFTs.length} NFTs ready`;
+  numberFlow(pt, `Done! ${generatedNFTs.length} NFTs ready`);
   renderGallery();
+  fireConfetti();
 }
 
-// ── GALLERY ────────────────────────────────
+// ── GALLERY WITH PAGINATION ────────────────
+let galleryPage = 0;
+const GALLERY_PAGE_SIZE = 100;
+
 function renderGallery() {
   const wrap = document.getElementById('galleryWrap');
   const grid = document.getElementById('galleryGrid');
   if (!generatedNFTs.length) { wrap.style.display = 'none'; return; }
   wrap.style.display = 'block';
+  galleryPage = 0;
   document.getElementById('galleryCnt').textContent = `(${generatedNFTs.length})`;
-  grid.innerHTML = generatedNFTs.map((nft, i) => `
-    <div class="gallery-item" onclick="openNftModal(${i})">
+  renderGalleryPage();
+}
+
+function renderGalleryPage() {
+  const grid = document.getElementById('galleryGrid');
+  const start = galleryPage * GALLERY_PAGE_SIZE;
+  const end = Math.min(start + GALLERY_PAGE_SIZE, generatedNFTs.length);
+  const pageNfts = generatedNFTs.slice(start, end);
+  const totalPages = Math.ceil(generatedNFTs.length / GALLERY_PAGE_SIZE);
+
+  grid.innerHTML = pageNfts.map((nft, i) => `
+    <div class="gallery-item" onclick="openNftModal(${start + i})">
       <img src="${nft.dataUrl}" alt="#${nft.id}" loading="lazy">
       <div class="gallery-item-id">#${nft.id}</div>
       ${nft.isOneOfOne ? '<div class="gallery-item-1of1">1/1</div>' : ''}
     </div>
   `).join('');
+
+  // Pagination controls
+  let paginationEl = document.getElementById('galleryPagination');
+  if (!paginationEl) {
+    paginationEl = document.createElement('div');
+    paginationEl.id = 'galleryPagination';
+    paginationEl.style.cssText = 'display:flex;justify-content:center;align-items:center;gap:10px;margin-top:12px;font-size:12px;font-family:"DM Sans",sans-serif';
+    grid.parentNode.appendChild(paginationEl);
+  }
+  if (totalPages > 1) {
+    paginationEl.innerHTML = `
+      <button class="btn btn-ghost btn-sm" onclick="galleryPrev()" ${galleryPage === 0 ? 'disabled' : ''}>← Prev</button>
+      <span style="color:var(--muted);font-family:'DM Mono',monospace">${galleryPage + 1} / ${totalPages}</span>
+      <button class="btn btn-ghost btn-sm" onclick="galleryNext()" ${galleryPage >= totalPages - 1 ? 'disabled' : ''}>Next →</button>
+    `;
+  } else {
+    paginationEl.innerHTML = '';
+  }
 }
+
+function galleryPrev() { if (galleryPage > 0) { galleryPage--; renderGalleryPage(); } }
+function galleryNext() { const totalPages = Math.ceil(generatedNFTs.length / GALLERY_PAGE_SIZE); if (galleryPage < totalPages - 1) { galleryPage++; renderGalleryPage(); } }
 
 // ── NFT MODAL WITH NAVIGATION ──────────────
 function openNftModal(idx) {
@@ -1241,29 +1315,98 @@ async function reGenSingle() {
 // ── EXPORT ─────────────────────────────────
 async function exportCollection() {
   if (!generatedNFTs.length) { log('Generate first!', 'warn'); return; }
-  log('Preparing ZIP...', 'info');
-  const zip = new JSZip();
-  const images = zip.folder('images');
+  const total = generatedNFTs.length;
   const colName = document.getElementById('colName').value;
   const colDesc = document.getElementById('colDesc').value;
-  const metadata = generatedNFTs.map(nft => ({
-    name: nft.customName || `${colName} #${nft.id}`,
-    description: colDesc,
-    image: `images/${nft.id}.${nft.isGif ? 'gif' : 'png'}`,
-    attributes: nft.traits.map(t => ({ trait_type: t.layer, value: t.trait.name })),
-    ...(nft.isOneOfOne ? { is_one_of_one: true } : {})
-  }));
-  zip.file('_metadata.json', JSON.stringify(metadata, null, 2));
-  metadata.forEach((m,i) => zip.file(`${i+1}.json`, JSON.stringify(m, null, 2)));
-  for (let i = 0; i < generatedNFTs.length; i++) {
-    const nft = generatedNFTs[i];
-    const ext = nft.isGif ? 'gif' : 'png';
-    images.file(`${nft.id}.${ext}`, nft.dataUrl.split(',')[1], { base64: true });
-    if (i % 50 === 0) { log(`Packing ${i}/${generatedNFTs.length}...`, 'info'); await tick(); }
+  const exportBtn = document.getElementById('exportBtn');
+  exportBtn.disabled = true; exportBtn.innerHTML = '<span class="spinner"></span> Exporting...';
+
+  const pw = document.getElementById('progressWrap');
+  const pf = document.getElementById('progFill');
+  const pt = document.getElementById('progTxt');
+  pw.style.display = 'block'; pf.style.width = '0%'; numberFlow(pt, 'Preparing export...');
+  log('Preparing export...', 'info');
+
+  const prefix = colName.replace(/\s+/g, '_');
+  const BATCH_SIZE = 500;
+
+  try {
+    const zip = new JSZip();
+    const imagesFolder = zip.folder('images');
+    const jsonFolder = zip.folder('json');
+
+    // Pack images
+    for (let i = 0; i < total; i++) {
+      const nft = generatedNFTs[i];
+      const ext = nft.isGif ? 'gif' : 'png';
+      imagesFolder.file(`${nft.id}.${ext}`, nft.dataUrl.split(',')[1], { base64: true });
+
+      if (i % BATCH_SIZE === 0) {
+        const pct = Math.round((i / total) * 50);
+        pf.style.width = pct + '%';
+        numberFlow(pt, `Packing images ${i}/${total}...`);
+        await tick();
+      }
+    }
+
+    // Pack JSON metadata
+    pf.style.width = '50%';
+    numberFlow(pt, 'Packing metadata...');
+    log('Packing metadata...', 'info');
+    await tick();
+
+    const metadata = generatedNFTs.map(nft => ({
+      name: nft.customName || `${colName} #${nft.id}`,
+      description: colDesc,
+      image: `images/${nft.id}.${nft.isGif ? 'gif' : 'png'}`,
+      attributes: nft.traits.map(t => ({ trait_type: t.layer, value: t.trait.name })),
+      ...(nft.isOneOfOne ? { is_one_of_one: true } : {})
+    }));
+
+    jsonFolder.file('_metadata.json', JSON.stringify(metadata, null, 2));
+    metadata.forEach((m, i) => jsonFolder.file(`${i + 1}.json`, JSON.stringify(m, null, 2)));
+
+    // Generate CSV
+    const allTraitTypes = [...new Set(metadata.flatMap(m => m.attributes.map(a => a.trait_type)))];
+    const csvHeader = ['tokenID', 'name', 'description', 'file_name', ...allTraitTypes.map(t => `attributes[${t}]`)].join(',');
+    const csvRows = metadata.map((m, i) => {
+      const nft = generatedNFTs[i];
+      const ext = nft.isGif ? 'gif' : 'png';
+      const traitValues = allTraitTypes.map(type => {
+        const attr = m.attributes.find(a => a.trait_type === type);
+        return attr ? attr.value : 'Blank';
+      });
+      return [i + 1, `"${m.name}"`, `"${m.description}"`, `${nft.id}.${ext}`, ...traitValues].join(',');
+    });
+    const csvContent = [csvHeader, ...csvRows].join('\n');
+    zip.file('metadata.csv', csvContent);
+
+    // Compress
+    numberFlow(pt, 'Compressing...');
+    pf.style.width = '55%';
+    log('Compressing ZIP...', 'info');
+    await tick();
+
+    const blob = await zip.generateAsync(
+      { type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 1 } },
+      (meta) => {
+        const pct = 55 + Math.round(meta.percent * 0.45);
+        pf.style.width = pct + '%';
+        numberFlow(pt, `Compressing... ${Math.round(meta.percent)}%`);
+      }
+    );
+
+    saveAs(blob, `${prefix}.zip`);
+    pf.style.width = '100%';
+    numberFlow(pt, 'Done');
+    log(`✓ ZIP downloaded (${(blob.size / 1024 / 1024).toFixed(1)} MB)`, 'ok');
+
+  } catch (e) {
+    log(`Export failed: ${e.message}. Try smaller collection or lower image size.`, 'err');
+    numberFlow(pt, 'Export failed — see log');
   }
-  const blob = await zip.generateAsync({ type: 'blob' });
-  saveAs(blob, `${colName.replace(/\s+/g,'_')}.zip`);
-  log('✓ ZIP downloaded!', 'ok');
+
+  exportBtn.disabled = false; exportBtn.innerHTML = 'Export ZIP';
 }
 
 // ── UTILS ──────────────────────────────────
@@ -1273,6 +1416,53 @@ function log(msg, type = 'info') {
   const d = document.createElement('div');
   d.className = type; d.textContent = '> ' + msg;
   a.appendChild(d); a.scrollTop = a.scrollHeight;
+}
+
+// ── NUMBER FLOW (Rolling Digits) ──────────
+function numberFlow(el, newValue) {
+  const newStr = String(newValue);
+  const oldStr = el.dataset.nfValue || '';
+  el.dataset.nfValue = newStr;
+
+  if (oldStr === newStr) return;
+
+  const maxLen = Math.max(oldStr.length, newStr.length);
+  const pDigits = oldStr.padStart(maxLen, ' ').split('');
+  const cDigits = newStr.padStart(maxLen, ' ').split('');
+
+  const isUp = (parseInt(newStr) || 0) >= (parseInt(oldStr) || 0);
+
+  let html = '';
+  for (let i = 0; i < maxLen; i++) {
+    const from = pDigits[i] === ' ' ? '' : pDigits[i];
+    const to = cDigits[i] === ' ' ? '' : cDigits[i];
+
+    if (from !== to) {
+      const dirClass = isUp ? 'nf-up' : 'nf-down';
+      html += `<span class="nf-slot"><span class="nf-roll ${dirClass}"><span class="nf-char">${from}</span><span class="nf-char">${to}</span></span></span>`;
+    } else {
+      html += `<span class="nf-slot"><span class="nf-char">${to}</span></span>`;
+    }
+  }
+
+  el.innerHTML = `<span class="nf-root">${html}</span>`;
+}
+
+function fireConfetti() {
+  const duration = 1500;
+  const end = Date.now() + duration;
+  const colors = ['#e63946', '#2a9d8f', '#e9c46a', '#f4a261', '#a8dadc', '#ff6b6b', '#ffd700'];
+
+  (function frame() {
+    confetti({ particleCount: 2, angle: 60, spread: 45, origin: { x: 0, y: 0.5 }, colors, zIndex: 9999 });
+    confetti({ particleCount: 2, angle: 120, spread: 45, origin: { x: 1, y: 0.5 }, colors, zIndex: 9999 });
+
+    if (Date.now() < end) requestAnimationFrame(frame);
+  })();
+
+  setTimeout(() => {
+    confetti({ particleCount: 5, spread: 60, origin: { y: 0.5 }, colors, zIndex: 9999 });
+  }, 300);
 }
 
 // ── EVENT LISTENERS ────────────────────────
@@ -1362,6 +1552,72 @@ function closeTutorial() {
 }
 
 document.getElementById('tutOverlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeTutorial(); });
+
+// ── TEXT 3D FLIP (hover effect) ─────────────
+
+// ── DITHER WAVE BACKGROUND (empty preview) ──
+(function() {
+  const canvas = document.getElementById('ditherCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  let animId = null;
+  let time = 0;
+
+  // Bayer 4x4 dither matrix
+  const bayer = [
+    [0,8,2,10],
+    [12,4,14,6],
+    [3,11,1,9],
+    [15,7,13,5]
+  ];
+
+  function draw() {
+    time += 0.02;
+    const pixelSize = 4;
+    const cols = Math.ceil(W / pixelSize);
+    const rows = Math.ceil(H / pixelSize);
+
+    ctx.clearRect(0, 0, W, H);
+
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        // Wave pattern
+        const nx = x / cols;
+        const ny = y / rows;
+        const wave = Math.sin(nx * 8 + time) * 0.3 + Math.sin(ny * 6 - time * 0.7) * 0.2 + Math.sin((nx + ny) * 5 + time * 1.3) * 0.2;
+        const value = (wave + 0.7) * 0.5; // normalize 0-1
+
+        // Dither threshold
+        const threshold = bayer[y % 4][x % 4] / 16;
+
+        if (value > threshold) {
+          const alpha = 0.08 + value * 0.12;
+          ctx.fillStyle = `rgba(150, 150, 150, ${alpha})`;
+          ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+        }
+      }
+    }
+
+    animId = requestAnimationFrame(draw);
+  }
+
+  function startDither() {
+    if (animId) return;
+    canvas.style.display = 'block';
+    draw();
+  }
+
+  function stopDither() {
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+    canvas.style.display = 'none';
+  }
+
+  // Start by default (no layers yet)
+  startDither();
+
+  // Expose globally so we can stop it when layers are loaded
+  window.ditherControl = { start: startDither, stop: stopDither };
+})();
 </script>
 </body>
 </html>
