@@ -741,39 +741,36 @@ function addTraitToLayer(li) {
 }
 
 function updateRarity(li, ti, val) {
-  const newVal = parseInt(val);
   const traits = layers[li].traits;
-  if (traits.length <= 1) { traits[ti].rarity = newVal; return; }
+  if (traits.length <= 1) { traits[ti].rarity = parseInt(val); return; }
 
-  const oldVal = traits[ti].rarity;
-  const diff = newVal - oldVal;
+  const newVal = Math.max(0, Math.min(100, parseInt(val) || 0));
   traits[ti].rarity = newVal;
 
-  // Distribute the difference among other traits proportionally
-  const others = traits.filter((_, i) => i !== ti);
-  const othersTotal = others.reduce((s, t) => s + t.rarity, 0);
+  const remaining = 100 - newVal;
+  const others = traits.map((t, i) => ({ t, i })).filter(x => x.i !== ti);
+  const othersTotal = others.reduce((s, x) => s + x.t.rarity, 0);
 
   if (othersTotal === 0) {
-    // If all others are 0, distribute equally
-    const each = Math.floor(diff / others.length);
-    others.forEach(t => t.rarity = Math.max(0, -each));
+    // distribute equally
+    const base = Math.floor(remaining / others.length);
+    const extra = remaining - base * others.length;
+    others.forEach((x, idx) => { x.t.rarity = base + (idx < extra ? 1 : 0); });
   } else {
-    let remaining = -diff;
-    others.forEach(t => {
-      const proportion = t.rarity / othersTotal;
-      const change = Math.round(remaining * proportion);
-      t.rarity = Math.max(0, Math.min(100, t.rarity + change));
+    // distribute proportionally
+    let assigned = 0;
+    others.forEach((x, idx) => {
+      if (idx === others.length - 1) {
+        x.t.rarity = Math.max(0, remaining - assigned);
+      } else {
+        const share = Math.round((x.t.rarity / othersTotal) * remaining);
+        x.t.rarity = Math.max(0, share);
+        assigned += x.t.rarity;
+      }
     });
   }
 
-  // Fix rounding: ensure total = 100
-  const total = traits.reduce((s, t) => s + t.rarity, 0);
-  if (total !== 100 && traits.length > 1) {
-    const fixIdx = traits.findIndex((_, i) => i !== ti && traits[i].rarity > 0);
-    if (fixIdx >= 0) traits[fixIdx].rarity = Math.max(0, traits[fixIdx].rarity + (100 - total));
-  }
-
-  // Update all sliders and labels in this layer
+  // Update sliders and labels
   traits.forEach((t, i) => {
     const slider = document.querySelector(`#lw-${li} .trait-row:nth-child(${i+1}) .rarity-slider`);
     const label = document.getElementById(`r-${li}-${i}`);
@@ -1328,7 +1325,20 @@ async function exportCollection() {
   log('Preparing export...', 'info');
 
   const prefix = colName.replace(/\s+/g, '_');
-  const BATCH_SIZE = 500;
+  const imgSize = parseInt(document.getElementById('imgSize').value) || 512;
+  
+  // Smart batch size based on image size and count
+  let batchSize;
+  if (imgSize >= 1024) batchSize = 2000;
+  else if (imgSize >= 512) batchSize = 3000;
+  else batchSize = 5000;
+
+  const needsBatching = total > batchSize;
+  const numBatches = needsBatching ? Math.ceil(total / batchSize) : 1;
+
+  if (needsBatching) {
+    log(`Large collection detected — splitting into ${numBatches} ZIP files`, 'info');
+  }
 
   try {
     const zip = new JSZip();
@@ -1341,7 +1351,7 @@ async function exportCollection() {
       const ext = nft.isGif ? 'gif' : 'png';
       imagesFolder.file(`${nft.id}.${ext}`, nft.dataUrl.split(',')[1], { base64: true });
 
-      if (i % BATCH_SIZE === 0) {
+      if (i % 200 === 0) {
         const pct = Math.round((i / total) * 50);
         pf.style.width = pct + '%';
         numberFlow(pt, `Packing images ${i}/${total}...`);
@@ -1388,7 +1398,7 @@ async function exportCollection() {
     await tick();
 
     const blob = await zip.generateAsync(
-      { type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 1 } },
+      { type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 0 } },
       (meta) => {
         const pct = 55 + Math.round(meta.percent * 0.45);
         pf.style.width = pct + '%';
